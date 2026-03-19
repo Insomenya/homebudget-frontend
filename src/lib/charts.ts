@@ -4,7 +4,7 @@ export const CHART_COLORS = [
 ]
 
 export const formatRub = (v: number) =>
-  v.toLocaleString('ru-RU', { maximumFractionDigits: 0 }) + ' ₽'
+  v.toLocaleString('ru-RU', { maximumFractionDigits: 0 }) + '\u00A0₽'
 
 export const formatDate = (iso: string) => {
   const [y, m, d] = iso.split('-')
@@ -26,9 +26,9 @@ export const tooltipStyle: React.CSSProperties = {
   boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
   zIndex: 100,
   position: 'relative',
+  whiteSpace: 'nowrap',
 }
 
-// Container style to prevent tooltip clipping
 export const chartContainerStyle: React.CSSProperties = {
   overflow: 'visible',
   position: 'relative',

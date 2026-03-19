@@ -5,7 +5,7 @@ export const fmtDate = (iso: string) => {
 }
 
 export const fmtRub = (v: number) =>
-  v.toLocaleString('ru-RU', { maximumFractionDigits: 0 }) + ' ₽'
+  v.toLocaleString('ru-RU', { maximumFractionDigits: 0 }) + '\u00A0₽'
 
 export const fmtRub2 = (v: number) =>
-  v.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) + ' ₽'
+  v.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) + '\u00A0₽'
