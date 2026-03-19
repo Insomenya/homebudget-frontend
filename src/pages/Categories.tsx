@@ -177,7 +177,7 @@ const Categories = () => {
 
   return (
     <>
-      <PageHeader title="Категории" description="Иерархические категории доходов и расходов"
+      <PageHeader title="Категории" description="Категории доходов и расходов"
         actions={<Button onClick={() => setEditing('new')}><Plus size={16} /> Добавить</Button>} />
 
       <div className="flex gap-2 mb-4">

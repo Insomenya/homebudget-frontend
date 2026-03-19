@@ -74,7 +74,7 @@ const Members = () => {
 
   return (
     <>
-      <PageHeader title="Участники" description="Люди, которые участвуют в расходах"
+      <PageHeader title="Участники" description="Люди, которые участвуют в общих расходах"
         actions={<Button onClick={() => setEditing('new')}><Plus size={16} /> Добавить</Button>} />
 
       {!(members?.length) ? <EmptyState icon={<UserCircle />} title="Нет участников" /> : (

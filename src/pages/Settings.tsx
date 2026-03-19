@@ -10,7 +10,7 @@ const sections = [
 
 const Settings = () => (
   <>
-    <PageHeader title="Настройки" description="Справочники и участники" />
+    <PageHeader title="Настройки" description="Справочники и настройки" />
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {sections.map((s) => (
         <Link key={s.to} to={s.to}>
