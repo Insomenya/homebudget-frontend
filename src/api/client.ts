@@ -11,8 +11,6 @@ import type {
   Dashboard, AnalyticsFilter,
   Meta, LookupValue, CreateLookupInput, UpdateLookupInput,
   Loan, CreateLoanInput, UpdateLoanInput, LoanDailySchedule,
-  BudgetTable, BudgetColumn, CreateBudgetColumnInput,
-  BudgetRow, CreateBudgetRowInput, UpdateBudgetCellInput,
 } from '../types'
 import type { QsParams } from '../types/api'
 
@@ -114,16 +112,6 @@ const api = {
     delete: (id: number) => request<void>('DELETE', `/loans/${id}`),
     schedule: (id: number, from: string, to: string) =>
       request<LoanDailySchedule>('GET', `/loans/${id}/schedule?from=${from}&to=${to}`),
-  },
-
-  budget: {
-    getTable: (page = 1, limit = 30) => request<BudgetTable>('GET', `/budget?page=${page}&limit=${limit}`),
-    createColumn: (d: CreateBudgetColumnInput) => request<BudgetColumn>('POST', '/budget/columns', d),
-    deleteColumn: (id: number) => request<void>('DELETE', `/budget/columns/${id}`),
-    createRow: (d: CreateBudgetRowInput) => request<BudgetRow>('POST', '/budget/rows', d),
-    deleteRow: (id: number) => request<void>('DELETE', `/budget/rows/${id}`),
-    updateCell: (d: UpdateBudgetCellInput) => request<void>('PUT', '/budget/cells', d),
-    toggleExecuted: (id: number) => request<void>('POST', `/budget/rows/${id}/toggle`),
   },
 
   analytics: {

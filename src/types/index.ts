@@ -127,6 +127,9 @@ export interface Transaction {
   category_id: number | null
   shared_group_id: number | null
   paid_by_member_id: number | null
+  loan_id: number | null
+  is_pending: boolean
+  planned_id: number | null
   created_at: string
   updated_at: string
 }
@@ -387,8 +390,8 @@ export interface Loan {
   name: string
   principal: number
   annual_rate: number
-  term_months: number
   start_date: string
+  end_date: string
   monthly_payment: number
   already_paid: number
   account_id: number | null
@@ -402,8 +405,8 @@ export interface CreateLoanInput {
   name: string
   principal: number
   annual_rate: number
-  term_months: number
   start_date: string
+  end_date: string
   already_paid: number
   account_id: number | null
   category_id: number | null
@@ -432,47 +435,4 @@ export interface LoanDailySchedule {
   total_paid: number
   total_interest: number
   days: LoanDayRow[]
-}
-
-// ── Budget ──────────────────────────────────────────
-
-export interface BudgetColumn {
-  id: number
-  name: string
-  col_type: string
-  ref_id: number | null
-  sort_order: number
-}
-
-export interface CreateBudgetColumnInput {
-  name: string
-  col_type: string
-  ref_id: number | null
-}
-
-export interface BudgetRow {
-  id: number
-  date: string
-  label: string
-  is_executed: boolean
-  cells: Record<number, number>
-}
-
-export interface CreateBudgetRowInput {
-  date: string
-  label: string
-}
-
-export interface UpdateBudgetCellInput {
-  row_id: number
-  column_id: number
-  amount: number
-}
-
-export interface BudgetTable {
-  columns: BudgetColumn[]
-  rows: BudgetRow[]
-  total: number
-  page: number
-  pages: number
 }

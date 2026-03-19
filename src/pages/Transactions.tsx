@@ -1,6 +1,5 @@
 import { useState, useCallback, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
-import { Plus, Trash2, Search, CalendarClock } from 'lucide-react'
+import { Plus, Trash2, Search, Check } from 'lucide-react'
 import { useApiData, useMutation } from '../hooks/useApi'
 import { useMeta } from '../hooks/useMeta'
 import api from '../api/client'
@@ -58,8 +57,8 @@ const AddTxModal = ({ open, onClose, onCreated }: { open: boolean; onClose: () =
       account_id: form.account_id ? parseInt(form.account_id) : null,
       category_id: form.category_id ? parseInt(form.category_id) : null,
       loan_id: form.loan_id ? parseInt(form.loan_id) : undefined,
-      shared_group_id: form.shared_group_id ? parseInt(form.shared_group_id) : undefined,
-      paid_by_member_id: form.paid_by_member_id ? parseInt(form.paid_by_member_id) : undefined,
+      shared_group_id: isShared ? parseInt(form.shared_group_id) : undefined,
+      paid_by_member_id: isShared && form.paid_by_member_id ? parseInt(form.paid_by_member_id) : undefined,
     })
     onCreated()
   }
@@ -93,18 +92,19 @@ const AddTxModal = ({ open, onClose, onCreated }: { open: boolean; onClose: () =
             {(loans ?? []).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </Select>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <Select label="Общий расход (группа)" value={form.shared_group_id} onChange={(e) => setForm({ ...form, shared_group_id: e.target.value, paid_by_member_id: e.target.value ? form.paid_by_member_id : '' })}>
-            <option value="">— Личный —</option>
-            {(groups ?? []).map((g) => <option key={g.id} value={g.id}>{g.icon} {g.name}</option>)}
+
+        <Select label="Деление расходов" value={form.shared_group_id} onChange={(e) => setForm({ ...form, shared_group_id: e.target.value, paid_by_member_id: e.target.value ? form.paid_by_member_id : '' })}>
+          <option value="">— Личный —</option>
+          {(groups ?? []).map((g) => <option key={g.id} value={g.id}>{g.icon} {g.name}</option>)}
+        </Select>
+
+        {isShared && (
+          <Select label="Кто оплатил" value={form.paid_by_member_id} onChange={(e) => setForm({ ...form, paid_by_member_id: e.target.value })}>
+            <option value="">—</option>
+            {(members ?? []).map((m) => <option key={m.id} value={m.id}>{m.icon} {m.name}</option>)}
           </Select>
-          {isShared && (
-            <Select label="Кто оплатил" value={form.paid_by_member_id} onChange={(e) => setForm({ ...form, paid_by_member_id: e.target.value })}>
-              <option value="">—</option>
-              {(members ?? []).map((m) => <option key={m.id} value={m.id}>{m.icon} {m.name}</option>)}
-            </Select>
-          )}
-        </div>
+        )}
+
         {error && <p className="text-sm app-negative">{error}</p>}
         <Button type="submit" loading={loading} className="self-end">Добавить</Button>
       </form>
@@ -133,6 +133,9 @@ const Transactions = () => {
       loan_id: t.loan_id, shared_group_id: t.shared_group_id, paid_by_member_id: t.paid_by_member_id,
     })
   })
+  const { run: confirmTx } = useMutation((id: number) =>
+    api.transactions.update(id, {} as never), // будет заменено на PATCH в будущих шагах
+  )
 
   const handleDelete = async (id: number) => { if (!confirm('Удалить?')) return; await deleteTx(id); reload() }
   const handleSort = (col: string) => setF((p) => ({ ...p, sort: col, dir: p.sort === col && p.dir === 'DESC' ? 'ASC' : 'DESC', page: 1 }))
@@ -144,21 +147,12 @@ const Transactions = () => {
     return c ? `${c.icon} ${c.name}` : '—'
   }
 
-  const today = new Date().toISOString().split('T')[0]
   const items = data?.items ?? []
 
   return (
     <>
       <PageHeader title="Операции" description={`Всего: ${data?.total ?? 0}`}
         actions={<Button onClick={() => setShowAdd(true)}><Plus size={16} /> Добавить</Button>} />
-
-      {/* sub-links */}
-      <div className="mb-4">
-        <Link to="/planning" className="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-xl transition-colors"
-          style={{ color: 'var(--accent)', background: 'var(--accent-soft)' }}>
-          <CalendarClock size={15} /> Регулярные платежи
-        </Link>
-      </div>
 
       <Card className="mb-4">
         <CardBody>
@@ -196,22 +190,22 @@ const Transactions = () => {
                 <SortableTh col="description" sort={sortState} onSort={handleSort}>Описание</SortableTh>
                 <SortableTh col="amount" sort={sortState} onSort={handleSort} align="right">Сумма</SortableTh>
                 <SortableTh col="type" sort={sortState} onSort={handleSort}>Тип</SortableTh>
-                <th className="px-4 py-3 w-10" style={{ borderBottom: '1px solid var(--border-subtle)' }} />
+                <th className="px-4 py-3 w-16" style={{ borderBottom: '1px solid var(--border-subtle)' }} />
               </tr></thead>
               <tbody>{items.map((tx) => {
-                const isFuture = tx.date > today
+                const isPending = !!(tx as Transaction & { is_pending?: boolean }).is_pending
 
                 return (
                   <tr key={tx.id}
                     className="transition-colors"
                     style={{
-                      opacity: isFuture ? 0.5 : 1,
-                      background: isFuture ? 'color-mix(in srgb, var(--surface-overlay) 40%, transparent)' : undefined,
+                      opacity: isPending ? 0.5 : 1,
+                      background: isPending ? 'color-mix(in srgb, var(--surface-overlay) 40%, transparent)' : undefined,
                     }}
                   >
                     <Td>
                       <InlineEdit value={tx.date} type="date" displayValue={fmtDate(tx.date)} onSave={(v) => handleInline(tx, 'date', v)} />
-                      {tx.shared_group_id && <span className="ml-1 text-[10px]" style={{ color: 'var(--accent)' }} title="Общий расход">👥</span>}
+                      {tx.shared_group_id && <span className="ml-1 text-[10px]" style={{ color: 'var(--accent)' }} title="Деление расходов">👥</span>}
                     </Td>
                     <Td className="text-sm">{catName(tx.category_id)}</Td>
                     <Td>
@@ -227,9 +221,18 @@ const Transactions = () => {
                     </Td>
                     <Td><Badge variant={typeBadge[tx.type]}>{label('transaction_types', tx.type)}</Badge></Td>
                     <Td>
-                      <button onClick={() => handleDelete(tx.id)} className="p-1.5 rounded-lg transition-colors cursor-pointer" style={{ color: 'var(--text-muted)' }}>
-                        <Trash2 size={14} />
-                      </button>
+                      <div className="flex gap-0.5 justify-end">
+                        {isPending && (
+                          <button onClick={() => { /* will be implemented in step 5 */ }}
+                            className="p-1.5 rounded-lg transition-colors cursor-pointer" style={{ color: 'var(--positive)' }}
+                            title="Провести">
+                            <Check size={14} />
+                          </button>
+                        )}
+                        <button onClick={() => handleDelete(tx.id)} className="p-1.5 rounded-lg transition-colors cursor-pointer" style={{ color: 'var(--text-muted)' }}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </Td>
                   </tr>
                 )

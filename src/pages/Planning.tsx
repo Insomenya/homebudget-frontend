@@ -1,5 +1,5 @@
 import { useState, useMemo, type FormEvent } from 'react'
-import { Plus, Play, Pencil, CalendarClock, Trash2 } from 'lucide-react'
+import { Plus, Pencil, CalendarClock, Trash2 } from 'lucide-react'
 import { useApiData, useMutation } from '../hooks/useApi'
 import { useMeta } from '../hooks/useMeta'
 import api from '../api/client'
@@ -52,6 +52,8 @@ const PlanModal = ({ open, plan, onClose, onSaved }: PlanModalProps) => {
       isNew ? api.planned.create(d) : api.planned.update(plan!.id, d as UpdatePlannedInput),
   )
 
+  const isShared = !!form.shared_group_id
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     await save({
@@ -63,8 +65,8 @@ const PlanModal = ({ open, plan, onClose, onSaved }: PlanModalProps) => {
       end_date: form.end_date || undefined,
       account_id: form.account_id ? parseInt(form.account_id) : null,
       category_id: form.category_id ? parseInt(form.category_id) : null,
-      shared_group_id: form.shared_group_id ? parseInt(form.shared_group_id) : undefined,
-      paid_by_member_id: form.paid_by_member_id ? parseInt(form.paid_by_member_id) : undefined,
+      shared_group_id: isShared ? parseInt(form.shared_group_id) : undefined,
+      paid_by_member_id: isShared && form.paid_by_member_id ? parseInt(form.paid_by_member_id) : undefined,
       notify_days: parseInt(form.notify_days) || 3,
       is_auto: form.is_auto,
     })
@@ -74,7 +76,7 @@ const PlanModal = ({ open, plan, onClose, onSaved }: PlanModalProps) => {
   if (!open) return null
 
   return (
-    <Modal open={open} onClose={onClose} title={isNew ? 'Новый план' : 'Редактировать план'} className="max-w-xl">
+    <Modal open={open} onClose={onClose} title={isNew ? 'Новый отложенный платёж' : 'Редактировать'} className="max-w-xl">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input label="Название" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Интернет, зарплата…" />
 
@@ -108,16 +110,17 @@ const PlanModal = ({ open, plan, onClose, onSaved }: PlanModalProps) => {
           </Select>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Select label="Группа расходов" value={form.shared_group_id} onChange={(e) => setForm({ ...form, shared_group_id: e.target.value })}>
-            <option value="">— Нет —</option>
-            {(groups ?? []).map((g) => <option key={g.id} value={g.id}>{g.icon} {g.name}</option>)}
-          </Select>
-          <Select label="Плательщик" value={form.paid_by_member_id} onChange={(e) => setForm({ ...form, paid_by_member_id: e.target.value })}>
-            <option value="">— Нет —</option>
+        <Select label="Деление расходов" value={form.shared_group_id} onChange={(e) => setForm({ ...form, shared_group_id: e.target.value, paid_by_member_id: e.target.value ? form.paid_by_member_id : '' })}>
+          <option value="">— Нет —</option>
+          {(groups ?? []).map((g) => <option key={g.id} value={g.id}>{g.icon} {g.name}</option>)}
+        </Select>
+
+        {isShared && (
+          <Select label="Кто оплатил" value={form.paid_by_member_id} onChange={(e) => setForm({ ...form, paid_by_member_id: e.target.value })}>
+            <option value="">—</option>
             {(members ?? []).map((m) => <option key={m.id} value={m.id}>{m.icon} {m.name}</option>)}
           </Select>
-        </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4 items-center">
           <Input label="Напоминание за (дней)" type="number" min="0" value={form.notify_days} onChange={(e) => setForm({ ...form, notify_days: e.target.value })} />
@@ -140,10 +143,8 @@ const Planning = () => {
   const [editing, setEditing] = useState<PlannedTransaction | 'new' | null>(null)
   const [sort, setSort] = useState<SortState>({ col: 'next_due', dir: 'asc' })
   const [page, setPage] = useState(1)
-  const { run: exec } = useMutation((id: number) => api.planned.execute(id))
   const { run: remove } = useMutation((id: number) => api.planned.delete(id))
 
-  const handleExec = async (id: number) => { await exec(id); reload() }
   const handleDelete = async (id: number) => { if (!confirm('Удалить?')) return; await remove(id); reload() }
 
   const sorted = useMemo(() => {
@@ -166,11 +167,11 @@ const Planning = () => {
 
   return (
     <>
-      <PageHeader title="Планирование" description="Регулярные платежи и поступления"
+      <PageHeader title="Отложенные платежи" description="Регулярные платежи и поступления"
         actions={<Button onClick={() => setEditing('new')}><Plus size={16} /> Добавить</Button>} />
 
       {loading ? <div className="flex justify-center py-20"><Spinner /></div> : !sorted.length ? (
-        <EmptyState icon={<CalendarClock />} title="Нет запланированных операций" />
+        <EmptyState icon={<CalendarClock />} title="Нет отложенных платежей" />
       ) : (
         <Card>
           <Table>
@@ -181,7 +182,7 @@ const Planning = () => {
               <SortableTh col="recurrence" sort={sort} onSort={(c) => { setSort(toggleSort(sort, c)); setPage(1) }}>Период</SortableTh>
               <SortableTh col="next_due" sort={sort} onSort={(c) => { setSort(toggleSort(sort, c)); setPage(1) }}>Следующий</SortableTh>
               <SortableTh col="is_active" sort={sort} onSort={(c) => { setSort(toggleSort(sort, c)); setPage(1) }}>Статус</SortableTh>
-              <th className="px-4 py-3 w-28" style={{ borderBottom: '1px solid var(--border-subtle)' }} />
+              <th className="px-4 py-3 w-20" style={{ borderBottom: '1px solid var(--border-subtle)' }} />
             </tr></thead>
             <tbody>{paged.map((p) => (
               <Tr key={p.id}>
@@ -203,12 +204,6 @@ const Planning = () => {
                 </Td>
                 <Td>
                   <div className="flex gap-1 justify-end">
-                    {p.is_active && (
-                      <button onClick={() => handleExec(p.id)} title="Выполнить"
-                        className="p-1.5 rounded-lg transition-colors cursor-pointer" style={{ color: 'var(--accent)' }}>
-                        <Play size={14} />
-                      </button>
-                    )}
                     <button onClick={() => setEditing(p)}
                       className="p-1.5 rounded-lg transition-colors cursor-pointer" style={{ color: 'var(--text-muted)' }}>
                       <Pencil size={14} />

@@ -143,7 +143,7 @@ const Groups = () => {
 
   return (
     <>
-      <PageHeader title="Группы расходов" description="Совместные расходы и распределение долей"
+      <PageHeader title="Деление расходов" description="Совместные расходы и распределение долей"
         actions={<Button onClick={() => setEditing('new')}><Plus size={16} /> Создать группу</Button>} />
 
       {/* sub-navigation */}

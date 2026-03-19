@@ -8,7 +8,6 @@ import Groups from './pages/Groups'
 import Members from './pages/Members'
 import Planning from './pages/Planning'
 import Loans from './pages/Loans'
-import Budget from './pages/Budget'
 import Lookups from './pages/Lookups'
 import Settings from './pages/Settings'
 
@@ -23,7 +22,6 @@ const App = () => (
       <Route path="/members" element={<Members />} />
       <Route path="/planning" element={<Planning />} />
       <Route path="/loans" element={<Loans />} />
-      <Route path="/budget" element={<Budget />} />
       <Route path="/lookups" element={<Lookups />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="*" element={<Navigate to="/" replace />} />
