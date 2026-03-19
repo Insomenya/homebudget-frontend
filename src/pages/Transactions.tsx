@@ -14,6 +14,7 @@ import Spinner from '../components/ui/Spinner'
 import EmptyState from '../components/ui/EmptyState'
 import Pagination from '../components/ui/Pagination'
 import InlineEdit from '../components/ui/InlineEdit'
+import DatePicker from '../components/ui/DatePicker'
 import { Table, Td, Tr } from '../components/ui/Table'
 import { SortableTh, type SortState } from '../components/ui/SortableTable'
 import { fmtDate, fmtRub } from '../lib/format'
@@ -57,29 +58,22 @@ const AddTxModal = ({ open, onClose, onCreated }: {
 
   const filteredCats = (cats ?? []).filter((c) => c.type === form.type)
   const groupedCats = filteredCats.reduce<Category[]>((acc, c) => {
-    if (!c.parent_id) {
-      acc.push(c)
-      acc.push(...filteredCats.filter((ch) => ch.parent_id === c.id))
-    }
+    if (!c.parent_id) { acc.push(c); acc.push(...filteredCats.filter((ch) => ch.parent_id === c.id)) }
     return acc
   }, [])
-
   const isShared = !!form.shared_group_id
   const showLoan = form.type === 'expense'
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     await create({
-      date: form.date,
-      amount: parseFloat(form.amount) || 0,
-      description: form.description,
+      date: form.date, amount: parseFloat(form.amount) || 0, description: form.description,
       type: form.type,
       account_id: form.account_id ? parseInt(form.account_id) : null,
       category_id: form.category_id ? parseInt(form.category_id) : null,
       loan_id: showLoan && form.loan_id ? parseInt(form.loan_id) : undefined,
       shared_group_id: isShared ? parseInt(form.shared_group_id) : undefined,
-      paid_by_member_id: isShared && form.paid_by_member_id
-        ? parseInt(form.paid_by_member_id) : undefined,
+      paid_by_member_id: isShared && form.paid_by_member_id ? parseInt(form.paid_by_member_id) : undefined,
     })
     onCreated()
   }
@@ -88,10 +82,8 @@ const AddTxModal = ({ open, onClose, onCreated }: {
     <Modal open={open} onClose={onClose} title="Новая операция">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-4">
-          <Input label="Дата" type="date" value={form.date}
-            onChange={(e) => setForm({ ...form, date: e.target.value })} />
-          <Input label="Сумма" type="number" step="0.01" min="0.01"
-            value={form.amount} placeholder="0.00"
+          <DatePicker label="Дата" value={form.date} onChange={(v) => setForm({ ...form, date: v })} />
+          <Input label="Сумма" type="number" step="0.01" min="0.01" value={form.amount} placeholder="0.00"
             onChange={(e) => setForm({ ...form, amount: e.target.value })} />
         </div>
         <div className="grid grid-cols-2 gap-4">
@@ -105,9 +97,7 @@ const AddTxModal = ({ open, onClose, onCreated }: {
             onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
             <option value="">—</option>
             {groupedCats.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.parent_id ? '   ' : ''}{c.icon} {c.name}
-              </option>
+              <option key={c.id} value={c.id}>{c.parent_id ? '   ' : ''}{c.icon} {c.name}</option>
             ))}
           </Select>
         </div>
@@ -118,7 +108,6 @@ const AddTxModal = ({ open, onClose, onCreated }: {
           <option value="">—</option>
           {(accs ?? []).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
         </Select>
-
         {showLoan && (
           <Select label="Кредит" value={form.loan_id}
             onChange={(e) => setForm({ ...form, loan_id: e.target.value })}>
@@ -126,28 +115,18 @@ const AddTxModal = ({ open, onClose, onCreated }: {
             {(loans ?? []).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </Select>
         )}
-
         <Select label="Деление расходов" value={form.shared_group_id}
-          onChange={(e) => setForm({
-            ...form, shared_group_id: e.target.value,
-            paid_by_member_id: e.target.value ? form.paid_by_member_id : '',
-          })}>
+          onChange={(e) => setForm({ ...form, shared_group_id: e.target.value, paid_by_member_id: e.target.value ? form.paid_by_member_id : '' })}>
           <option value="">— Личный —</option>
-          {(groups ?? []).map((g) => (
-            <option key={g.id} value={g.id}>{g.icon} {g.name}</option>
-          ))}
+          {(groups ?? []).map((g) => <option key={g.id} value={g.id}>{g.icon} {g.name}</option>)}
         </Select>
-
         {isShared && (
           <Select label="Кто оплатил" value={form.paid_by_member_id}
             onChange={(e) => setForm({ ...form, paid_by_member_id: e.target.value })}>
             <option value="">—</option>
-            {(members ?? []).map((m) => (
-              <option key={m.id} value={m.id}>{m.icon} {m.name}</option>
-            ))}
+            {(members ?? []).map((m) => <option key={m.id} value={m.id}>{m.icon} {m.name}</option>)}
           </Select>
         )}
-
         {error && <p className="text-sm app-negative">{error}</p>}
         <Button type="submit" loading={loading} className="self-end">Добавить</Button>
       </form>
@@ -158,10 +137,7 @@ const AddTxModal = ({ open, onClose, onCreated }: {
 const Transactions = () => {
   const { label } = useMeta()
   const { data: cats } = useApiData<Category[]>(() => api.categories.list(), [])
-  const [f, setF] = useState<Filters>({
-    page: 1, limit: 20, sort: 'date', dir: 'DESC',
-    search: '', from: '', to: '', type: '',
-  })
+  const [f, setF] = useState<Filters>({ page: 1, limit: 20, sort: 'date', dir: 'DESC', search: '', from: '', to: '', type: '' })
   const [showAdd, setShowAdd] = useState(false)
 
   const sortState: SortState = { col: f.sort, dir: f.dir.toLowerCase() as 'asc' | 'desc' }
@@ -178,22 +154,16 @@ const Transactions = () => {
         amount: args.field === 'amount' ? (parseFloat(args.value) || t.amount) : t.amount,
         description: args.field === 'description' ? args.value : t.description,
         type: t.type, account_id: t.account_id, category_id: t.category_id,
-        loan_id: t.loan_id, shared_group_id: t.shared_group_id,
-        paid_by_member_id: t.paid_by_member_id,
+        loan_id: t.loan_id, shared_group_id: t.shared_group_id, paid_by_member_id: t.paid_by_member_id,
         is_pending: t.is_pending, planned_id: t.planned_id,
       })
     },
   )
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Удалить?')) return; await deleteTx(id); reload()
-  }
+  const handleDelete = async (id: number) => { if (!confirm('Удалить?')) return; await deleteTx(id); reload() }
   const handleConfirm = async (id: number) => { await confirmTx(id); reload() }
-  const handleSort = (col: string) =>
-    setF((p) => ({ ...p, sort: col, dir: p.sort === col && p.dir === 'DESC' ? 'ASC' : 'DESC', page: 1 }))
-  const handleInline = async (tx: Transaction, field: string, value: string) => {
-    await updateTx({ id: tx.id, tx, field, value }); reload()
-  }
+  const handleSort = (col: string) => setF((p) => ({ ...p, sort: col, dir: p.sort === col && p.dir === 'DESC' ? 'ASC' : 'DESC', page: 1 }))
+  const handleInline = async (tx: Transaction, field: string, value: string) => { await updateTx({ id: tx.id, tx, field, value }); reload() }
 
   const catName = (id: number | null) => {
     if (!id || !cats) return '—'
@@ -210,22 +180,18 @@ const Transactions = () => {
 
       <Card className="mb-4">
         <CardBody>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 items-end">
             <div className="flex-1 min-w-[200px] relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2"
-                style={{ color: 'var(--text-muted)' }} />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
               <input type="text" placeholder="Поиск…" value={f.search}
                 onChange={(e) => setF((p) => ({ ...p, search: e.target.value, page: 1 }))}
-                className="w-full pl-9 pr-3 py-2 rounded-xl text-sm border outline-none app-text"
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm border outline-none app-text"
                 style={{ borderColor: 'var(--border)', background: 'var(--surface-overlay)' }} />
             </div>
-            <Input type="date" value={f.from}
-              onChange={(e) => setF((p) => ({ ...p, from: e.target.value, page: 1 }))} className="w-40" />
-            <Input type="date" value={f.to}
-              onChange={(e) => setF((p) => ({ ...p, to: e.target.value, page: 1 }))} className="w-40" />
-            <select value={f.type}
-              onChange={(e) => setF((p) => ({ ...p, type: e.target.value, page: 1 }))}
-              className="px-3 py-2 rounded-xl text-sm border outline-none app-text"
+            <DatePicker value={f.from} onChange={(v) => setF((p) => ({ ...p, from: v, page: 1 }))} className="w-44" />
+            <DatePicker value={f.to} onChange={(v) => setF((p) => ({ ...p, to: v, page: 1 }))} className="w-44" />
+            <select value={f.type} onChange={(e) => setF((p) => ({ ...p, type: e.target.value, page: 1 }))}
+              className="px-3 py-2.5 rounded-xl text-sm border outline-none app-text"
               style={{ borderColor: 'var(--border)', background: 'var(--surface-overlay)' }}>
               <option value="">Все типы</option>
               <option value="expense">{label('transaction_types', 'expense')}</option>
@@ -256,14 +222,11 @@ const Transactions = () => {
                   background: tx.is_pending ? 'color-mix(in srgb, var(--warning) 6%, transparent)' : undefined,
                 }}>
                   <Td>
-                    <InlineEdit value={tx.date} type="date" displayValue={fmtDate(tx.date)}
-                      onSave={(v) => handleInline(tx, 'date', v)} />
+                    <InlineEdit value={tx.date} type="date" displayValue={fmtDate(tx.date)} onSave={(v) => handleInline(tx, 'date', v)} />
                     {tx.shared_group_id && <span className="ml-1 text-[10px]" style={{ color: 'var(--accent)' }} title="Деление расходов">👥</span>}
                     {tx.is_pending && <span className="ml-1 text-[10px]" style={{ color: 'var(--warning)' }} title="Ожидает проводки">⏳</span>}
                   </Td>
-                  <Td>
-                    <InlineEdit value={tx.description} onSave={(v) => handleInline(tx, 'description', v)} />
-                  </Td>
+                  <Td><InlineEdit value={tx.description} onSave={(v) => handleInline(tx, 'description', v)} /></Td>
                   <Td align="right">
                     <InlineEdit value={String(tx.amount)} type="number"
                       displayValue={`${tx.type === 'income' ? '+' : tx.type === 'expense' ? '−' : ''}${fmtRub(tx.amount)}`}
@@ -275,17 +238,9 @@ const Transactions = () => {
                   <Td>
                     <div className="flex gap-0.5 justify-end">
                       {tx.is_pending && (
-                        <button onClick={() => handleConfirm(tx.id)}
-                          className="p-1.5 rounded-lg transition-colors cursor-pointer"
-                          style={{ color: 'var(--positive)' }} title="Провести">
-                          <Check size={14} />
-                        </button>
+                        <button onClick={() => handleConfirm(tx.id)} className="p-1.5 rounded-lg transition-colors cursor-pointer" style={{ color: 'var(--positive)' }} title="Провести"><Check size={14} /></button>
                       )}
-                      <button onClick={() => handleDelete(tx.id)}
-                        className="p-1.5 rounded-lg transition-colors cursor-pointer"
-                        style={{ color: 'var(--text-muted)' }}>
-                        <Trash2 size={14} />
-                      </button>
+                      <button onClick={() => handleDelete(tx.id)} className="p-1.5 rounded-lg transition-colors cursor-pointer" style={{ color: 'var(--text-muted)' }}><Trash2 size={14} /></button>
                     </div>
                   </Td>
                 </tr>
@@ -298,8 +253,7 @@ const Transactions = () => {
         )}
       </Card>
 
-      <AddTxModal open={showAdd} onClose={() => setShowAdd(false)}
-        onCreated={() => { setShowAdd(false); reload() }} />
+      <AddTxModal open={showAdd} onClose={() => setShowAdd(false)} onCreated={() => { setShowAdd(false); reload() }} />
     </>
   )
 }

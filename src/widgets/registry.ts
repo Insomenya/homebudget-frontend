@@ -9,13 +9,19 @@ import UpcomingWidget from './UpcomingWidget'
 import RecentWidget from './RecentWidget'
 import BattleWidget from './BattleWidget'
 import PendingWidget from './PendingWidget'
+import CategoryBarWidget from './CategoryBarWidget'
+import IncomeExpenseWidget from './IncomeExpenseWidget'
+import DailyHeatmapWidget from './DailyHeatmapWidget'
 
 export const WIDGET_REGISTRY: WidgetDef[] = [
   { type: 'accounts', label: 'Балансы счетов', icon: '💳', component: AccountsWidget },
   { type: 'month-summary', label: 'Месяц', icon: '📊', component: MonthSummaryWidget },
-  { type: 'settlements', label: 'Долги', icon: '⚖️', component: SettlementsWidget },
-  { type: 'pie-chart', label: 'Расходы по категориям', icon: '🥧', component: PieChartWidget },
-  { type: 'trends', label: 'Динамика', icon: '📈', component: TrendsWidget },
+  { type: 'settlements', label: 'Деление расходов', icon: '⚖️', component: SettlementsWidget },
+  { type: 'pie-chart', label: 'Категории (круг)', icon: '🥧', component: PieChartWidget },
+  { type: 'category-bar', label: 'Топ категорий (бары)', icon: '📊', component: CategoryBarWidget },
+  { type: 'income-expense', label: 'Доходы vs Расходы', icon: '📊', component: IncomeExpenseWidget },
+  { type: 'trends', label: 'Динамика (линии)', icon: '📈', component: TrendsWidget },
+  { type: 'daily-heatmap', label: 'Тепловая карта расходов', icon: '🗓️', component: DailyHeatmapWidget },
   { type: 'quick-add', label: 'Быстрая запись', icon: '⚡', component: QuickAddWidget },
   { type: 'upcoming', label: 'Предстоящие', icon: '📅', component: UpcomingWidget },
   { type: 'recent', label: 'Последние', icon: '🕐', component: RecentWidget },
