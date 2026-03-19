@@ -1,0 +1,25 @@
+import type { WidgetDef } from '../types/widgets'
+import AccountsWidget from './AccountsWidget'
+import MonthSummaryWidget from './MonthSummaryWidget'
+import SettlementsWidget from './SettlementsWidget'
+import PieChartWidget from './PieChartWidget'
+import TrendsWidget from './TrendsWidget'
+import QuickAddWidget from './QuickAddWidget'
+import UpcomingWidget from './UpcomingWidget'
+import RecentWidget from './RecentWidget'
+import BattleWidget from './BattleWidget'
+
+export const WIDGET_REGISTRY: WidgetDef[] = [
+  { type: 'accounts', label: 'Балансы счетов', icon: '💳', component: AccountsWidget },
+  { type: 'month-summary', label: 'Месяц', icon: '📊', component: MonthSummaryWidget },
+  { type: 'settlements', label: 'Долги', icon: '⚖️', component: SettlementsWidget },
+  { type: 'pie-chart', label: 'Расходы по категориям', icon: '🥧', component: PieChartWidget },
+  { type: 'trends', label: 'Динамика', icon: '📈', component: TrendsWidget },
+  { type: 'quick-add', label: 'Быстрая запись', icon: '⚡', component: QuickAddWidget },
+  { type: 'upcoming', label: 'Предстоящие', icon: '📅', component: UpcomingWidget },
+  { type: 'recent', label: 'Последние', icon: '🕐', component: RecentWidget },
+  { type: 'battle', label: 'Баланс сил', icon: '⚔️', component: BattleWidget },
+]
+
+export const getWidgetDef = (type: string): WidgetDef | undefined =>
+  WIDGET_REGISTRY.find((w) => w.type === type)

@@ -1,0 +1,1 @@
+export type QsParams = Record<string, string | number | boolean | null | undefined>

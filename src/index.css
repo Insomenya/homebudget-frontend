@@ -1,0 +1,181 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ────────────────────────────────────────────────────
+   Theme tokens
+──────────────────────────────────────────────────── */
+:root {
+  /* page */
+  --surface: #f4efe7;
+  --surface-elevated: #fbf7f0;
+  --surface-overlay: #fffaf4;
+  --surface-glass: rgba(255, 250, 243, 0.72);
+
+  /* cards / widgets */
+  --card-grad-a: rgba(255, 252, 246, 0.96);
+  --card-grad-b: rgba(247, 239, 227, 0.94);
+  --card-shadow: 0 10px 30px rgba(98, 78, 58, 0.08);
+
+  /* borders */
+  --border: #d8d0c4;
+  --border-subtle: #e6dfd3;
+
+  /* text */
+  --text-primary: #1f1a16;
+  --text-secondary: #5f564b;
+  --text-muted: #8d8274;
+
+  /* accent */
+  --accent: #6e8e72;
+  --accent-hover: #5f7f62;
+  --accent-soft: rgba(110, 142, 114, 0.16);
+
+  /* statuses */
+  --positive: #6d9d79;
+  --negative: #d07b72;
+  --warning: #c5a55a;
+
+  /* charts */
+  --chart-1: #7eb8a0;
+  --chart-2: #c2855a;
+  --chart-3: #8b9dc3;
+  --chart-4: #c77d8a;
+  --chart-5: #a89b6e;
+  --chart-6: #9585b4;
+  --chart-7: #6aafb8;
+  --chart-8: #d27d6b;
+
+  --chart-1-soft: rgba(126, 184, 160, 0.18);
+  --chart-2-soft: rgba(194, 133, 90, 0.18);
+  --chart-3-soft: rgba(139, 157, 195, 0.18);
+  --chart-4-soft: rgba(199, 125, 138, 0.18);
+
+  /* dashboard grid */
+  --grid-line: rgba(110, 96, 80, 0.08);
+
+  /* battle */
+  --battle-a: #7eb8a0;
+  --battle-a-bright: #9ef1cf;
+  --battle-b: #c77d8a;
+  --battle-b-bright: #ff9fb1;
+}
+
+body.dark {
+  --surface: #171b21;
+  --surface-elevated: #20252d;
+  --surface-overlay: #272d36;
+  --surface-glass: rgba(36, 42, 52, 0.72);
+
+  --card-grad-a: rgba(35, 41, 50, 0.95);
+  --card-grad-b: rgba(28, 34, 42, 0.94);
+  --card-shadow: 0 10px 35px rgba(0, 0, 0, 0.24);
+
+  --border: #313844;
+  --border-subtle: #2a303a;
+
+  --text-primary: #ece7e1;
+  --text-secondary: #a7a097;
+  --text-muted: #726b63;
+
+  --accent: #88b08b;
+  --accent-hover: #769a79;
+  --accent-soft: rgba(136, 176, 139, 0.16);
+
+  --positive: #87b991;
+  --negative: #dc8a83;
+  --warning: #d2b465;
+
+  --chart-1: #7eb8a0;
+  --chart-2: #d49a6f;
+  --chart-3: #9caeda;
+  --chart-4: #d98b98;
+  --chart-5: #b3a772;
+  --chart-6: #a695cb;
+  --chart-7: #77c2c9;
+  --chart-8: #db8b78;
+
+  --chart-1-soft: rgba(126, 184, 160, 0.16);
+  --chart-2-soft: rgba(212, 154, 111, 0.16);
+  --chart-3-soft: rgba(156, 174, 218, 0.16);
+  --chart-4-soft: rgba(217, 139, 152, 0.16);
+
+  --grid-line: rgba(255, 255, 255, 0.045);
+
+  --battle-a: #74d2b0;
+  --battle-a-bright: #a7ffe1;
+  --battle-b: #e38b9a;
+  --battle-b-bright: #ffb1bf;
+}
+
+html {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--text-primary);
+  transition:
+    background-color 220ms ease,
+    color 220ms ease;
+}
+
+/* utility-ish classes */
+.app-bg { background: var(--surface); }
+.app-surface { background: var(--surface-elevated); }
+.app-surface-overlay { background: var(--surface-overlay); }
+.app-glass { background: var(--surface-glass); backdrop-filter: blur(16px); }
+
+.app-text { color: var(--text-primary); }
+.app-text-secondary { color: var(--text-secondary); }
+.app-text-muted { color: var(--text-muted); }
+
+.app-border { border-color: var(--border); }
+.app-border-subtle { border-color: var(--border-subtle); }
+
+.app-positive { color: var(--positive); }
+.app-negative { color: var(--negative); }
+.app-warning { color: var(--warning); }
+.app-accent { color: var(--accent); }
+
+.app-card-gradient {
+  background: linear-gradient(135deg, var(--card-grad-a), var(--card-grad-b));
+}
+
+.app-shadow {
+  box-shadow: var(--card-shadow);
+}
+
+.grid-pattern {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
