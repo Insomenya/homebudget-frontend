@@ -4,8 +4,9 @@ import { useApiData } from '../hooks/useApi'
 import api from '../api/client'
 import type { WidgetComponentProps } from '../types/widgets'
 import type { CategoryBreakdown } from '../types'
+import PeriodSelector, { usePeriodDates, type PeriodPreset } from '../components/ui/PeriodSelector'
 import WidgetShell from './WidgetShell'
-import { CHART_COLORS, formatRub, tooltipStyle } from '../lib/charts'
+import { CHART_COLORS, formatRub, tooltipStyle, chartContainerStyle } from '../lib/charts'
 
 const TabBtn = ({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
   <button onClick={onClick} className="px-2.5 py-1 text-xs rounded-lg transition-colors cursor-pointer"
@@ -16,12 +17,11 @@ const TabBtn = ({ active, onClick, children }: { active: boolean; onClick: () =>
 
 const PieChartWidget = ({ onRemove }: WidgetComponentProps) => {
   const [type, setType] = useState<'expense' | 'income'>('expense')
-  const now = new Date()
-  const from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
-  const to = now.toISOString().split('T')[0]
+  const [period, setPeriod] = useState<PeriodPreset>('month')
+  const { from, to } = usePeriodDates(period)
 
   const fetcher = useCallback(() => api.analytics.categories({ type, from, to }), [type, from, to])
-  const { data } = useApiData<CategoryBreakdown>(fetcher, [type])
+  const { data } = useApiData<CategoryBreakdown>(fetcher, [type, period])
   const items = data?.items ?? []
 
   const chartData = useMemo(() => items.map((c, i) => ({
@@ -31,15 +31,18 @@ const PieChartWidget = ({ onRemove }: WidgetComponentProps) => {
 
   return (
     <WidgetShell title="По категориям" icon="🥧" onRemove={onRemove}>
-      <div className="flex gap-1 mb-3">
-        <TabBtn active={type === 'expense'} onClick={() => setType('expense')}>Расходы</TabBtn>
-        <TabBtn active={type === 'income'} onClick={() => setType('income')}>Доходы</TabBtn>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex gap-1">
+          <TabBtn active={type === 'expense'} onClick={() => setType('expense')}>Расходы</TabBtn>
+          <TabBtn active={type === 'income'} onClick={() => setType('income')}>Доходы</TabBtn>
+        </div>
+        <PeriodSelector value={period} onChange={setPeriod} />
       </div>
       {chartData.length === 0 ? (
         <p className="text-sm app-text-muted py-8 text-center">Нет данных</p>
       ) : (
         <>
-          <div style={{ height: 210 }}>
+          <div style={{ height: 210, ...chartContainerStyle }}>
             <ResponsivePie
               data={chartData}
               margin={{ top: 10, right: 10, bottom: 10, left: 10 }}

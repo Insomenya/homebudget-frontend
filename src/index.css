@@ -219,3 +219,13 @@ body {
 .rdp-chevron {
   fill: var(--text-muted);
 }
+
+/* ── Nivo tooltip layer fix ────────────────────────── */
+.nivo-tooltip {
+  z-index: 100 !important;
+}
+
+/* Ensure widget chart containers don't clip tooltips */
+[class*="WidgetShell"] > div:last-child {
+  overflow: visible !important;
+}

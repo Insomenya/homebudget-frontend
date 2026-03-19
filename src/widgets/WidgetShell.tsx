@@ -5,7 +5,7 @@ import type { WidgetShellProps } from '../types/widgets'
 const WidgetShell = ({ title, icon, onRemove, children, className }: WidgetShellProps) => (
   <div
     className={clsx(
-      'rounded-2xl border overflow-hidden transition-all duration-300 app-shadow app-card-gradient',
+      'rounded-2xl border overflow-visible transition-all duration-300 app-shadow app-card-gradient',
       className,
     )}
     style={{ borderColor: 'var(--border)' }}
@@ -31,7 +31,7 @@ const WidgetShell = ({ title, icon, onRemove, children, className }: WidgetShell
         <X size={14} />
       </button>
     </div>
-    <div className="p-4">{children}</div>
+    <div className="p-4 overflow-visible">{children}</div>
   </div>
 )
 

@@ -1,21 +1,23 @@
-import { useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { ResponsiveLine } from '@nivo/line'
 import { useApiData } from '../hooks/useApi'
 import api from '../api/client'
 import type { WidgetComponentProps } from '../types/widgets'
 import type { TrendData } from '../types'
+import PeriodSelector, { usePeriodDates, type PeriodPreset } from '../components/ui/PeriodSelector'
 import WidgetShell from './WidgetShell'
-import { formatRub, nivoTheme, tooltipStyle } from '../lib/charts'
+import { formatRub, nivoTheme, tooltipStyle, chartContainerStyle } from '../lib/charts'
 
 const TrendsWidget = ({ onRemove }: WidgetComponentProps) => {
-  const now = new Date()
-  const to = now.toISOString().split('T')[0]
-  const fromDate = new Date(now)
-  fromDate.setMonth(fromDate.getMonth() - 5)
-  const from = `${fromDate.getFullYear()}-${String(fromDate.getMonth() + 1).padStart(2, '0')}-01`
+  const [period, setPeriod] = useState<PeriodPreset>('3months')
+  const { from, to } = usePeriodDates(period)
+  const granularity = period === 'week' ? 'day' : period === 'year' || period === 'all' ? 'month' : 'month'
 
-  const fetcher = useCallback(() => api.analytics.trends({ from, to, granularity: 'month' }), [from, to])
-  const { data } = useApiData<TrendData>(fetcher, [])
+  const fetcher = useCallback(
+    () => api.analytics.trends({ from, to, granularity }),
+    [from, to, granularity],
+  )
+  const { data } = useApiData<TrendData>(fetcher, [period])
   const points = data?.points ?? []
 
   const chartData = useMemo(() => [
@@ -25,10 +27,13 @@ const TrendsWidget = ({ onRemove }: WidgetComponentProps) => {
 
   return (
     <WidgetShell title="Динамика" icon="📈" onRemove={onRemove} className="col-span-1 md:col-span-2">
+      <div className="flex justify-end mb-2">
+        <PeriodSelector value={period} onChange={setPeriod} />
+      </div>
       {points.length === 0 ? (
         <p className="text-sm app-text-muted py-8 text-center">Нет данных</p>
       ) : (
-        <div style={{ height: 230 }}>
+        <div style={{ height: 230, ...chartContainerStyle }}>
           <ResponsiveLine
             data={chartData}
             margin={{ top: 16, right: 16, bottom: 44, left: 48 }}

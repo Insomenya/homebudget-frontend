@@ -4,17 +4,17 @@ import { useApiData } from '../hooks/useApi'
 import api from '../api/client'
 import type { WidgetComponentProps } from '../types/widgets'
 import type { CategoryBreakdown } from '../types'
+import PeriodSelector, { usePeriodDates, type PeriodPreset } from '../components/ui/PeriodSelector'
 import WidgetShell from './WidgetShell'
-import { CHART_COLORS, formatRub, tooltipStyle, nivoTheme } from '../lib/charts'
+import { CHART_COLORS, formatRub, tooltipStyle, nivoTheme, chartContainerStyle } from '../lib/charts'
 
 const CategoryBarWidget = ({ onRemove }: WidgetComponentProps) => {
   const [type, setType] = useState<'expense' | 'income'>('expense')
-  const now = new Date()
-  const from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
-  const to = now.toISOString().split('T')[0]
+  const [period, setPeriod] = useState<PeriodPreset>('month')
+  const { from, to } = usePeriodDates(period)
 
   const fetcher = useCallback(() => api.analytics.categories({ type, from, to }), [type, from, to])
-  const { data } = useApiData<CategoryBreakdown>(fetcher, [type])
+  const { data } = useApiData<CategoryBreakdown>(fetcher, [type, period])
   const items = data?.items ?? []
 
   const chartData = useMemo(() =>
@@ -27,20 +27,23 @@ const CategoryBarWidget = ({ onRemove }: WidgetComponentProps) => {
 
   return (
     <WidgetShell title="Топ категорий" icon="📊" onRemove={onRemove}>
-      <div className="flex gap-1 mb-3">
-        <button onClick={() => setType('expense')} className="px-2.5 py-1 text-xs rounded-lg transition-colors cursor-pointer"
-          style={{ background: type === 'expense' ? 'var(--accent)' : 'transparent', color: type === 'expense' ? '#fff' : 'var(--text-muted)' }}>
-          Расходы
-        </button>
-        <button onClick={() => setType('income')} className="px-2.5 py-1 text-xs rounded-lg transition-colors cursor-pointer"
-          style={{ background: type === 'income' ? 'var(--accent)' : 'transparent', color: type === 'income' ? '#fff' : 'var(--text-muted)' }}>
-          Доходы
-        </button>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex gap-1">
+          <button onClick={() => setType('expense')} className="px-2.5 py-1 text-xs rounded-lg transition-colors cursor-pointer"
+            style={{ background: type === 'expense' ? 'var(--accent)' : 'transparent', color: type === 'expense' ? '#fff' : 'var(--text-muted)' }}>
+            Расходы
+          </button>
+          <button onClick={() => setType('income')} className="px-2.5 py-1 text-xs rounded-lg transition-colors cursor-pointer"
+            style={{ background: type === 'income' ? 'var(--accent)' : 'transparent', color: type === 'income' ? '#fff' : 'var(--text-muted)' }}>
+            Доходы
+          </button>
+        </div>
+        <PeriodSelector value={period} onChange={setPeriod} />
       </div>
       {chartData.length === 0 ? (
         <p className="text-sm app-text-muted py-8 text-center">Нет данных</p>
       ) : (
-        <div style={{ height: Math.max(180, chartData.length * 36) }}>
+        <div style={{ height: Math.max(180, chartData.length * 36), ...chartContainerStyle }}>
           <ResponsiveBar
             data={chartData}
             keys={['amount']}
@@ -55,10 +58,7 @@ const CategoryBarWidget = ({ onRemove }: WidgetComponentProps) => {
             axisTop={null}
             axisRight={null}
             axisBottom={null}
-            axisLeft={{
-              tickSize: 0,
-              tickPadding: 8,
-            }}
+            axisLeft={{ tickSize: 0, tickPadding: 8 }}
             enableLabel={false}
             tooltip={({ data: d }) => (
               <div style={tooltipStyle}>
@@ -68,11 +68,7 @@ const CategoryBarWidget = ({ onRemove }: WidgetComponentProps) => {
             )}
             theme={{
               ...nivoTheme,
-              axis: {
-                ticks: {
-                  text: { fill: 'var(--text-secondary)', fontSize: 11 },
-                },
-              },
+              axis: { ticks: { text: { fill: 'var(--text-secondary)', fontSize: 11 } } },
             }}
           />
         </div>

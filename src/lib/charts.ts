@@ -11,7 +11,7 @@ export const formatDate = (iso: string) => {
   return d ? `${d}.${m}.${y}` : iso
 }
 
-// ── Nivo tooltip helpers ────────────────────────────
+// ── Nivo helpers ────────────────────────────────
 
 export const nivoTheme = {
   text: { fill: 'var(--text-secondary)', fontSize: 11 },
@@ -24,4 +24,12 @@ export const tooltipStyle: React.CSSProperties = {
   borderRadius: 12,
   padding: '8px 12px',
   boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+  zIndex: 100,
+  position: 'relative',
+}
+
+// Container style to prevent tooltip clipping
+export const chartContainerStyle: React.CSSProperties = {
+  overflow: 'visible',
+  position: 'relative',
 }
