@@ -75,5 +75,6 @@ export interface GroupSettlementSummary {
   group_id: number
   group_name: string
   group_icon: string
+  member_count: number
   debts: Debt[]
 }
