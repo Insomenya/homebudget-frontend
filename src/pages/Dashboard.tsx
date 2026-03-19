@@ -89,7 +89,7 @@ const Dashboard = () => {
   }, [addWidget, reload])
 
   if (loading) return <div className="flex items-center justify-center py-32"><Spinner size={32} /></div>
-  if (error) return <div className="text-center py-32 text-negative">Ошибка: {error}</div>
+  if (error) return <div className="text-center py-32 app-negative">Ошибка: {error}</div>
 
   return (
     <div className="grid-pattern min-h-[calc(100vh-12rem)] rounded-2xl p-6 -mx-4 sm:-mx-6">

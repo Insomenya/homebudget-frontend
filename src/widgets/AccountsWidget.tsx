@@ -12,10 +12,15 @@ const AccountsWidget = ({ data, onRemove }: WidgetComponentProps) => {
       <div className="space-y-2">
         {accounts.map((a) => (
           <div key={a.id} className="flex items-center justify-between text-sm">
-            <span className="text-text-secondary dark:text-d-text-secondary">{a.name}</span>
-            <span className="tabular-nums font-medium">{formatRub(a.current_balance)}</span>
+            <span className="app-text-secondary">{a.name}</span>
+            <span className={`tabular-nums font-medium ${a.current_balance >= 0 ? '' : 'app-negative'}`}>
+              {formatRub(a.current_balance)}
+            </span>
           </div>
         ))}
+        {accounts.length === 0 && (
+          <p className="text-sm app-text-muted text-center py-2">Нет счетов</p>
+        )}
       </div>
     </WidgetShell>
   )
