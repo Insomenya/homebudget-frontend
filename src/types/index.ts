@@ -144,6 +144,9 @@ export interface CreateTransactionInput {
   category_id: number | null
   shared_group_id?: number | null
   paid_by_member_id?: number | null
+  loan_id?: number | null
+  is_pending?: boolean
+  planned_id?: number | null
 }
 
 export type UpdateTransactionInput = CreateTransactionInput
@@ -410,6 +413,20 @@ export interface CreateLoanInput {
   already_paid: number
   account_id: number | null
   category_id: number | null
+}
+
+export interface LoanMonthGroup {
+  month: string
+  label: string
+  days: LoanDayRow[]
+}
+
+export interface LoanDailySchedule {
+  loan: Loan
+  current_debt: number
+  total_paid: number
+  total_interest: number
+  months: LoanMonthGroup[]
 }
 
 export interface UpdateLoanInput {

@@ -86,12 +86,13 @@ const api = {
     turnover: (id: number, from?: string, to?: string) => request<Turnover>('GET', `/groups/${id}/turnover${qs({ from, to })}`),
   },
 
-  transactions: {
+    transactions: {
     list: (params: QsParams = {}) => request<TransactionList>('GET', `/transactions${qs(params)}`),
     get: (id: number) => request<Transaction>('GET', `/transactions/${id}`),
     create: (d: CreateTransactionInput) => request<Transaction>('POST', '/transactions', d),
     update: (id: number, d: UpdateTransactionInput) => request<Transaction>('PUT', `/transactions/${id}`, d),
     delete: (id: number) => request<void>('DELETE', `/transactions/${id}`),
+    confirm: (id: number) => request<Transaction>('POST', `/transactions/${id}/confirm`),
   },
 
   planned: {
