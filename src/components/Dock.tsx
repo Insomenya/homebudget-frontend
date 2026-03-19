@@ -7,20 +7,20 @@ import {
 } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 
-interface DockLink { to: string; icon: LucideIcon; label: string; center?: boolean; matchPaths?: string[] }
+interface DockLink { to: string; icon: LucideIcon; label: string; matchPaths?: string[] }
 
 const links: DockLink[] = [
+  { to: '/', icon: LayoutDashboard, label: 'Дашборд' },
   { to: '/transactions', icon: ArrowLeftRight, label: 'Операции' },
   { to: '/accounts', icon: Wallet, label: 'Счета' },
   { to: '/categories', icon: Tags, label: 'Категории' },
-  { to: '/', icon: LayoutDashboard, label: 'Дашборд', center: true },
   { to: '/groups', icon: Users, label: 'Деление' },
   { to: '/planning', icon: CalendarClock, label: 'Платежи' },
   { to: '/loans', icon: Landmark, label: 'Кредиты' },
   { to: '/settings', icon: Settings, label: 'Ещё', matchPaths: ['/settings', '/lookups', '/members'] },
 ]
 
-const DockItem = ({ to, icon: Icon, label, center, matchPaths }: DockLink) => {
+const DockItem = ({ to, icon: Icon, label, matchPaths }: DockLink) => {
   const location = useLocation()
 
   const isManualActive = matchPaths
@@ -32,7 +32,7 @@ const DockItem = ({ to, icon: Icon, label, center, matchPaths }: DockLink) => {
       const active = isActive || isManualActive
       return clsx(
         'group flex flex-col items-center justify-center transition-all duration-200 cursor-pointer select-none',
-        center ? 'px-5 py-3 rounded-2xl min-w-[76px]' : 'px-3 py-2.5 rounded-xl min-w-[58px]',
+        'px-3 py-2.5 rounded-xl min-w-[58px]',
         active ? 'scale-[1.03]' : 'hover:scale-[1.02]',
       )
     }} style={({ isActive }) => {
@@ -43,8 +43,8 @@ const DockItem = ({ to, icon: Icon, label, center, matchPaths }: DockLink) => {
         boxShadow: active ? 'inset 0 0 0 1px var(--border-subtle)' : 'none',
       }
     }}>
-      <Icon size={center ? 24 : 17} strokeWidth={center ? 2.15 : 1.95} style={{ color: center ? 'var(--accent)' : undefined }} />
-      <span className={clsx('mt-0.5 font-medium leading-none', center ? 'text-[10px]' : 'text-[9px]')}>{label}</span>
+      <Icon size={17} strokeWidth={1.95} />
+      <span className="mt-0.5 font-medium leading-none text-[9px]">{label}</span>
     </NavLink>
   )
 }
@@ -56,11 +56,11 @@ const Dock = () => (
       borderColor: 'var(--border)', backdropFilter: 'blur(18px) saturate(140%)',
       boxShadow: '0 10px 28px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.16)',
     }}>
-      {links.slice(0, 3).map((l) => <DockItem key={l.to} {...l} />)}
+      <DockItem {...links[0]} />
       <div className="w-px h-7 mx-0.5 rounded-full" style={{ background: 'var(--border-subtle)' }} />
-      <DockItem {...links[3]} />
+      {links.slice(1, 7).map((l) => <DockItem key={l.to} {...l} />)}
       <div className="w-px h-7 mx-0.5 rounded-full" style={{ background: 'var(--border-subtle)' }} />
-      {links.slice(4).map((l) => <DockItem key={l.to} {...l} />)}
+      <DockItem {...links[7]} />
       <div className="w-px h-7 mx-0.5 rounded-full" style={{ background: 'var(--border-subtle)' }} />
       <div className="px-0.5"><ThemeToggle /></div>
     </div>
