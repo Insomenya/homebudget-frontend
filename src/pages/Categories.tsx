@@ -1,5 +1,5 @@
 import { useState, useMemo, type FormEvent } from 'react'
-import { Plus, Pencil, Trash2, Tags, ChevronRight } from 'lucide-react'
+import { Plus, Pencil, Trash2, Tags, ChevronRight, ChevronDown } from 'lucide-react'
 import { useApiData, useMutation } from '../hooks/useApi'
 import { useMeta } from '../hooks/useMeta'
 import api from '../api/client'
@@ -13,17 +13,19 @@ import Badge from '../components/ui/Badge'
 import EmptyState from '../components/ui/EmptyState'
 import Spinner from '../components/ui/Spinner'
 import Pagination from '../components/ui/Pagination'
+import InlineEdit from '../components/ui/InlineEdit'
 import type { Category, CreateCategoryInput, UpdateCategoryInput } from '../types'
 import type { CatForm, CatModalProps } from '../types/pages'
 
-const PAGE_SIZE = 12
-
-const CatRow = ({ cat, onEdit, onDelete, sub, childCount }: {
+const CatRow = ({ cat, onEdit, onDelete, onRename, sub, childCount, expanded, onToggle }: {
   cat: Category
   onEdit: () => void
   onDelete: () => void
+  onRename: (name: string) => void
   sub?: boolean
   childCount?: number
+  expanded?: boolean
+  onToggle?: () => void
 }) => (
   <div
     className="flex items-center justify-between py-2 px-3 rounded-lg transition-colors"
@@ -35,10 +37,17 @@ const CatRow = ({ cat, onEdit, onDelete, sub, childCount }: {
   >
     <div className="flex items-center gap-2.5">
       {!sub && (childCount ?? 0) > 0 && (
-        <ChevronRight size={12} style={{ color: 'var(--text-muted)' }} />
+        <button onClick={onToggle} className="p-0.5 rounded cursor-pointer" style={{ color: 'var(--text-muted)' }}>
+          {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        </button>
       )}
+      {!sub && (childCount ?? 0) === 0 && <span className="w-[18px]" />}
       <span className="text-base">{cat.icon || '📁'}</span>
-      <span className={`font-medium ${sub ? 'text-sm app-text-secondary' : 'text-sm'}`}>{cat.name}</span>
+      <InlineEdit
+        value={cat.name}
+        onSave={onRename}
+        className={`font-medium ${sub ? 'text-sm app-text-secondary' : 'text-sm'}`}
+      />
       {!sub && (childCount ?? 0) > 0 && (
         <span className="text-[10px] app-text-muted">({childCount})</span>
       )}
@@ -74,11 +83,9 @@ const CatModal = ({ open, category, categories, onClose, onSaved }: CatModalProp
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     const payload: CreateCategoryInput & Partial<UpdateCategoryInput> = {
-      name: form.name,
-      type: form.type,
-      icon: form.icon,
+      name: form.name, type: form.type, icon: form.icon,
       parent_id: form.parent_id ? parseInt(form.parent_id) : null,
-      sort_order: category?.sort_order ?? 0, // техническое, юзер не видит
+      sort_order: category?.sort_order ?? 0,
     }
     if (!isNew) (payload as UpdateCategoryInput).is_archived = false
     await save(payload)
@@ -116,11 +123,33 @@ const Categories = () => {
   const [editing, setEditing] = useState<Category | 'new' | null>(null)
   const [tab, setTab] = useState<'expense' | 'income'>('expense')
   const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(20)
+  const [collapsed, setCollapsed] = useState<Set<number>>(new Set())
   const { run: remove } = useMutation((id: number) => api.categories.delete(id))
+  const { run: update } = useMutation(
+    (args: { id: number; cat: Category; name: string }) =>
+      api.categories.update(args.id, {
+        name: args.name, type: args.cat.type, icon: args.cat.icon,
+        parent_id: args.cat.parent_id, sort_order: args.cat.sort_order, is_archived: false,
+      }),
+  )
 
   const handleDelete = async (id: number) => {
     if (!confirm('Удалить?')) return
     try { await remove(id); reload() } catch (e) { alert(e instanceof Error ? e.message : String(e)) }
+  }
+
+  const handleRename = async (cat: Category, name: string) => {
+    await update({ id: cat.id, cat, name })
+    reload()
+  }
+
+  const toggleCollapse = (id: number) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
   }
 
   const filtered = useMemo(() => (categories ?? []).filter((c) => c.type === tab), [categories, tab])
@@ -132,43 +161,55 @@ const Categories = () => {
     for (const p of parents) {
       const kids = childrenOf(p.id)
       items.push({ cat: p, sub: false, childCount: kids.length })
-      for (const k of kids) {
-        items.push({ cat: k, sub: true, childCount: 0 })
+      if (!collapsed.has(p.id)) {
+        for (const k of kids) {
+          items.push({ cat: k, sub: true, childCount: 0 })
+        }
       }
     }
     return items
-  }, [parents, filtered])
+  }, [parents, filtered, collapsed])
 
-  const totalPages = Math.max(1, Math.ceil(flatTree.length / PAGE_SIZE))
-  const paged = flatTree.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const totalPages = Math.max(1, Math.ceil(flatTree.length / limit))
+  const paged = flatTree.slice((page - 1) * limit, page * limit)
 
   if (loading) return <div className="flex justify-center py-20"><Spinner /></div>
 
   return (
     <>
-      <PageHeader title="Категории" description="Иерархические категории"
+      <PageHeader title="Категории" description="Иерархические категории доходов и расходов"
         actions={<Button onClick={() => setEditing('new')}><Plus size={16} /> Добавить</Button>} />
 
       <div className="flex gap-2 mb-4">
-        <Button variant={tab === 'expense' ? 'primary' : 'secondary'} size="sm" onClick={() => { setTab('expense'); setPage(1) }}>Расходы</Button>
-        <Button variant={tab === 'income' ? 'primary' : 'secondary'} size="sm" onClick={() => { setTab('income'); setPage(1) }}>Доходы</Button>
+        <Button variant={tab === 'expense' ? 'primary' : 'secondary'} size="sm"
+          onClick={() => { setTab('expense'); setPage(1) }}>
+          Расходы ({(categories ?? []).filter((c) => c.type === 'expense').length})
+        </Button>
+        <Button variant={tab === 'income' ? 'primary' : 'secondary'} size="sm"
+          onClick={() => { setTab('income'); setPage(1) }}>
+          Доходы ({(categories ?? []).filter((c) => c.type === 'income').length})
+        </Button>
       </div>
 
       {!flatTree.length ? <EmptyState icon={<Tags />} title="Нет категорий" /> : (
         <Card>
-          <div className="p-3 space-y-2">
+          <div className="p-3 space-y-1">
             {paged.map((item) => (
               <CatRow
                 key={item.cat.id}
                 cat={item.cat}
                 sub={item.sub}
                 childCount={item.childCount}
+                expanded={!collapsed.has(item.cat.id)}
+                onToggle={() => toggleCollapse(item.cat.id)}
                 onEdit={() => setEditing(item.cat)}
                 onDelete={() => handleDelete(item.cat.id)}
+                onRename={(name) => handleRename(item.cat, name)}
               />
             ))}
           </div>
-          <Pagination page={page} pages={totalPages} total={flatTree.length} onPage={setPage} />
+          <Pagination page={page} pages={totalPages} total={flatTree.length}
+            limit={limit} onPage={setPage} onLimitChange={(l) => { setLimit(l); setPage(1) }} />
         </Card>
       )}
 
