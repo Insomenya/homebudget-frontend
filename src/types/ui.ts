@@ -1,6 +1,5 @@
 import type { ReactNode, HTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes, ButtonHTMLAttributes } from 'react'
 
-// ── Card ─────────────────────────────────────────────
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   gradient?: boolean
   children: ReactNode
@@ -11,7 +10,6 @@ export interface CardSectionProps {
   className?: string
 }
 
-// ── Button ───────────────────────────────────────────
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 export type ButtonSize = 'sm' | 'md' | 'lg'
 
@@ -22,29 +20,27 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode
 }
 
-// ── Input ────────────────────────────────────────────
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: string
 }
 
-// ── Select ───────────────────────────────────────────
 export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string
   error?: string
   children: ReactNode
 }
 
-// ── Modal ────────────────────────────────────────────
 export interface ModalProps {
   open: boolean
   onClose?: () => void
   title?: string
   children: ReactNode
+  footer?: ReactNode
   className?: string
+  closeOnOverlay?: boolean
 }
 
-// ── Table ────────────────────────────────────────────
 export interface TableProps {
   children: ReactNode
   className?: string
@@ -70,7 +66,6 @@ export interface TrProps {
   className?: string
 }
 
-// ── Badge ────────────────────────────────────────────
 export type BadgeVariant = 'default' | 'success' | 'danger' | 'warning' | 'neutral'
 
 export interface BadgeProps {
@@ -79,7 +74,6 @@ export interface BadgeProps {
   className?: string
 }
 
-// ── EmptyState ───────────────────────────────────────
 export interface EmptyStateProps {
   icon?: ReactNode
   title: string
@@ -87,13 +81,11 @@ export interface EmptyStateProps {
   action?: ReactNode
 }
 
-// ── Spinner ──────────────────────────────────────────
 export interface SpinnerProps {
   size?: number
   className?: string
 }
 
-// ── PageHeader ───────────────────────────────────────
 export interface PageHeaderProps {
   title: string
   description?: string

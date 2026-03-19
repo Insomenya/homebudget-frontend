@@ -3,7 +3,7 @@ import clsx from 'clsx'
 import { X } from 'lucide-react'
 import type { ModalProps } from '../../types/ui'
 
-const Modal = ({ open, onClose, title, children, className }: ModalProps) => {
+const Modal = ({ open, onClose, title, children, footer, className, closeOnOverlay = true }: ModalProps) => {
   const overlayRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -24,11 +24,11 @@ const Modal = ({ open, onClose, title, children, className }: ModalProps) => {
       ref={overlayRef}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)' }}
-      onClick={(e) => { if (e.target === overlayRef.current) onClose?.() }}
+      onClick={(e) => { if (closeOnOverlay && e.target === overlayRef.current) onClose?.() }}
     >
       <div
         className={clsx(
-          'w-full max-w-lg rounded-2xl border',
+          'w-full max-w-lg rounded-2xl border flex flex-col',
           'animate-[modal-in_0.2s_ease-out]',
           className,
         )}
@@ -36,11 +36,12 @@ const Modal = ({ open, onClose, title, children, className }: ModalProps) => {
           background: 'var(--surface-elevated)',
           borderColor: 'var(--border)',
           boxShadow: '0 24px 60px rgba(0,0,0,0.25)',
+          maxHeight: '90vh',
         }}
       >
         {title && (
           <div
-            className="flex items-center justify-between px-6 py-4 border-b"
+            className="flex items-center justify-between px-6 py-4 border-b shrink-0"
             style={{ borderColor: 'var(--border-subtle)' }}
           >
             <h3 className="text-lg font-semibold app-text">{title}</h3>
@@ -53,7 +54,12 @@ const Modal = ({ open, onClose, title, children, className }: ModalProps) => {
             </button>
           </div>
         )}
-        <div className="px-6 py-5">{children}</div>
+        <div className="px-6 py-5 overflow-y-auto flex-1 min-h-0">{children}</div>
+        {footer && (
+          <div className="px-6 py-4 border-t shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   )

@@ -180,46 +180,6 @@ body {
   }
 }
 
-/* ── react-day-picker overrides ────────────────────── */
-.rdp-root {
-  --rdp-accent-color: var(--accent);
-  --rdp-accent-background-color: var(--accent-soft);
-}
-
-.rdp-day_button:hover {
-  background: var(--surface-overlay) !important;
-  border-radius: 8px;
-}
-
-.rdp-selected .rdp-day_button {
-  background: var(--accent) !important;
-  color: #fff !important;
-  border-radius: 8px;
-}
-
-.rdp-today:not(.rdp-selected) .rdp-day_button {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-  border-radius: 8px;
-}
-
-.rdp-button_previous,
-.rdp-button_next {
-  color: var(--text-muted);
-  border: none;
-  background: transparent;
-}
-
-.rdp-button_previous:hover,
-.rdp-button_next:hover {
-  background: var(--surface-overlay);
-  border-radius: 8px;
-}
-
-.rdp-chevron {
-  fill: var(--text-muted);
-}
-
 /* ── Nivo tooltip layer fix ────────────────────────── */
 .nivo-tooltip {
   z-index: 100 !important;

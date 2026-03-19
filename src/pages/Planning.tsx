@@ -16,6 +16,7 @@ import Pagination from '../components/ui/Pagination'
 import { Table, Td, Tr } from '../components/ui/Table'
 import { SortableTh, toggleSort, sortItems, type SortState } from '../components/ui/SortableTable'
 import InlineEdit from '../components/ui/InlineEdit'
+import DatePicker from '../components/ui/DatePicker'
 import type { PlannedTransaction, Account, Category, Member, SharedGroup, CreatePlannedInput, UpdatePlannedInput } from '../types'
 import type { PlanForm, PlanModalProps } from '../types/pages'
 import { fmtDate, fmtRub } from '../lib/format'
@@ -85,8 +86,8 @@ const PlanModal = ({ open, plan, onClose, onSaved }: PlanModalProps) => {
           </Select>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <Input label="Дата начала" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
-          <Input label="Дата окончания" type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+          <DatePicker label="Дата начала" value={form.start_date} onChange={(v) => setForm({ ...form, start_date: v })} />
+          <DatePicker label="Дата окончания" value={form.end_date} onChange={(v) => setForm({ ...form, end_date: v })} placeholder="Без ограничения" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <Select label="Счёт" value={form.account_id} onChange={(e) => setForm({ ...form, account_id: e.target.value })}>
@@ -180,13 +181,11 @@ const Planning = () => {
                   }} className="font-medium" />
                 </Td>
                 <Td align="right">
-                  <InlineEdit value={String(p.amount)} type="number"
-                    displayValue={fmtRub(p.amount)}
+                  <InlineEdit value={String(p.amount)} type="number" displayValue={fmtRub(p.amount)}
                     onSave={async (v) => {
                       await api.planned.update(p.id, { ...p, amount: parseFloat(v) || p.amount, end_date: p.end_date ?? undefined, shared_group_id: p.shared_group_id, paid_by_member_id: p.paid_by_member_id })
                       reload()
-                    }}
-                    className="tabular-nums font-medium" />
+                    }} className="tabular-nums font-medium" />
                 </Td>
                 <Td><Badge variant={p.type === 'income' ? 'success' : 'danger'}>{label('transaction_types', p.type)}</Badge></Td>
                 <Td><Badge variant="neutral">{label('recurrence_types', p.recurrence)}</Badge></Td>
