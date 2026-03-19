@@ -15,11 +15,10 @@ import Spinner from '../components/ui/Spinner'
 import Pagination from '../components/ui/Pagination'
 import { Table, Td, Tr } from '../components/ui/Table'
 import { SortableTh, toggleSort, sortItems, type SortState } from '../components/ui/SortableTable'
+import InlineEdit from '../components/ui/InlineEdit'
 import type { PlannedTransaction, Account, Category, Member, SharedGroup, CreatePlannedInput, UpdatePlannedInput } from '../types'
 import type { PlanForm, PlanModalProps } from '../types/pages'
-import { fmtDate } from '../lib/format'
-
-const PAGE_SIZE = 15
+import { fmtDate, fmtRub } from '../lib/format'
 
 const PlanModal = ({ open, plan, onClose, onSaved }: PlanModalProps) => {
   const { meta } = useMeta()
@@ -57,18 +56,14 @@ const PlanModal = ({ open, plan, onClose, onSaved }: PlanModalProps) => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     await save({
-      name: form.name,
-      amount: parseFloat(form.amount) || 0,
-      type: form.type,
-      recurrence: form.recurrence,
-      start_date: form.start_date,
+      name: form.name, amount: parseFloat(form.amount) || 0, type: form.type,
+      recurrence: form.recurrence, start_date: form.start_date,
       end_date: form.end_date || undefined,
       account_id: form.account_id ? parseInt(form.account_id) : null,
       category_id: form.category_id ? parseInt(form.category_id) : null,
       shared_group_id: isShared ? parseInt(form.shared_group_id) : undefined,
       paid_by_member_id: isShared && form.paid_by_member_id ? parseInt(form.paid_by_member_id) : undefined,
-      notify_days: parseInt(form.notify_days) || 3,
-      is_auto: form.is_auto,
+      notify_days: parseInt(form.notify_days) || 3, is_auto: form.is_auto,
     })
     onSaved()
   }
@@ -79,26 +74,20 @@ const PlanModal = ({ open, plan, onClose, onSaved }: PlanModalProps) => {
     <Modal open={open} onClose={onClose} title={isNew ? 'Новый отложенный платёж' : 'Редактировать'} className="max-w-xl">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input label="Название" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Интернет, зарплата…" />
-
         <div className="grid grid-cols-3 gap-4">
           <Input label="Сумма" type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
           <Select label="Тип" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
             {(meta?.transaction_types ?? []).filter((t) => t.value !== 'transfer').map((t) => (
-              <option key={t.id} value={t.value}>{t.label}</option>
-            ))}
+              <option key={t.id} value={t.value}>{t.label}</option>))}
           </Select>
           <Select label="Период" value={form.recurrence} onChange={(e) => setForm({ ...form, recurrence: e.target.value })}>
-            {(meta?.recurrence_types ?? []).map((r) => (
-              <option key={r.id} value={r.value}>{r.label}</option>
-            ))}
+            {(meta?.recurrence_types ?? []).map((r) => (<option key={r.id} value={r.value}>{r.label}</option>))}
           </Select>
         </div>
-
         <div className="grid grid-cols-2 gap-4">
           <Input label="Дата начала" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
           <Input label="Дата окончания" type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
         </div>
-
         <div className="grid grid-cols-2 gap-4">
           <Select label="Счёт" value={form.account_id} onChange={(e) => setForm({ ...form, account_id: e.target.value })}>
             <option value="">—</option>
@@ -109,19 +98,17 @@ const PlanModal = ({ open, plan, onClose, onSaved }: PlanModalProps) => {
             {(cats ?? []).filter((c) => c.type === form.type).map((c) => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
           </Select>
         </div>
-
-        <Select label="Деление расходов" value={form.shared_group_id} onChange={(e) => setForm({ ...form, shared_group_id: e.target.value, paid_by_member_id: e.target.value ? form.paid_by_member_id : '' })}>
+        <Select label="Деление расходов" value={form.shared_group_id}
+          onChange={(e) => setForm({ ...form, shared_group_id: e.target.value, paid_by_member_id: e.target.value ? form.paid_by_member_id : '' })}>
           <option value="">— Нет —</option>
           {(groups ?? []).map((g) => <option key={g.id} value={g.id}>{g.icon} {g.name}</option>)}
         </Select>
-
         {isShared && (
           <Select label="Кто оплатил" value={form.paid_by_member_id} onChange={(e) => setForm({ ...form, paid_by_member_id: e.target.value })}>
             <option value="">—</option>
             {(members ?? []).map((m) => <option key={m.id} value={m.id}>{m.icon} {m.name}</option>)}
           </Select>
         )}
-
         <div className="grid grid-cols-2 gap-4 items-center">
           <Input label="Напоминание за (дней)" type="number" min="0" value={form.notify_days} onChange={(e) => setForm({ ...form, notify_days: e.target.value })} />
           <label className="flex items-center gap-2 cursor-pointer pt-5">
@@ -129,7 +116,6 @@ const PlanModal = ({ open, plan, onClose, onSaved }: PlanModalProps) => {
             <span className="text-sm app-text-secondary">Автовыполнение</span>
           </label>
         </div>
-
         {error && <p className="text-sm app-negative">{error}</p>}
         <Button type="submit" loading={loading} className="self-end">{isNew ? 'Создать' : 'Сохранить'}</Button>
       </form>
@@ -143,6 +129,7 @@ const Planning = () => {
   const [editing, setEditing] = useState<PlannedTransaction | 'new' | null>(null)
   const [sort, setSort] = useState<SortState>({ col: 'next_due', dir: 'asc' })
   const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(20)
   const { run: remove } = useMutation((id: number) => api.planned.delete(id))
 
   const handleDelete = async (id: number) => { if (!confirm('Удалить?')) return; await remove(id); reload() }
@@ -162,8 +149,8 @@ const Planning = () => {
     })
   }, [plans, sort])
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
-  const paged = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const totalPages = Math.max(1, Math.ceil(sorted.length / limit))
+  const paged = sorted.slice((page - 1) * limit, page * limit)
 
   return (
     <>
@@ -186,38 +173,36 @@ const Planning = () => {
             </tr></thead>
             <tbody>{paged.map((p) => (
               <Tr key={p.id}>
-                <Td><span className="font-medium app-text">{p.name}</span></Td>
-                <Td align="right" className="tabular-nums font-medium">{p.amount.toLocaleString('ru-RU')} ₽</Td>
                 <Td>
-                  <Badge variant={p.type === 'income' ? 'success' : 'danger'}>
-                    {label('transaction_types', p.type)}
-                  </Badge>
+                  <InlineEdit value={p.name} onSave={async (v) => {
+                    await api.planned.update(p.id, { ...p, name: v, end_date: p.end_date ?? undefined, shared_group_id: p.shared_group_id, paid_by_member_id: p.paid_by_member_id })
+                    reload()
+                  }} className="font-medium" />
                 </Td>
-                <Td>
-                  <Badge variant="neutral">{label('recurrence_types', p.recurrence)}</Badge>
+                <Td align="right">
+                  <InlineEdit value={String(p.amount)} type="number"
+                    displayValue={fmtRub(p.amount)}
+                    onSave={async (v) => {
+                      await api.planned.update(p.id, { ...p, amount: parseFloat(v) || p.amount, end_date: p.end_date ?? undefined, shared_group_id: p.shared_group_id, paid_by_member_id: p.paid_by_member_id })
+                      reload()
+                    }}
+                    className="tabular-nums font-medium" />
                 </Td>
+                <Td><Badge variant={p.type === 'income' ? 'success' : 'danger'}>{label('transaction_types', p.type)}</Badge></Td>
+                <Td><Badge variant="neutral">{label('recurrence_types', p.recurrence)}</Badge></Td>
                 <Td>{fmtDate(p.next_due)}</Td>
-                <Td>
-                  <Badge variant={p.is_active ? 'success' : 'neutral'}>
-                    {p.is_active ? 'Активен' : 'Завершён'}
-                  </Badge>
-                </Td>
+                <Td><Badge variant={p.is_active ? 'success' : 'neutral'}>{p.is_active ? 'Активен' : 'Завершён'}</Badge></Td>
                 <Td>
                   <div className="flex gap-1 justify-end">
-                    <button onClick={() => setEditing(p)}
-                      className="p-1.5 rounded-lg transition-colors cursor-pointer" style={{ color: 'var(--text-muted)' }}>
-                      <Pencil size={14} />
-                    </button>
-                    <button onClick={() => handleDelete(p.id)}
-                      className="p-1.5 rounded-lg transition-colors cursor-pointer" style={{ color: 'var(--text-muted)' }}>
-                      <Trash2 size={14} />
-                    </button>
+                    <button onClick={() => setEditing(p)} className="p-1.5 rounded-lg transition-colors cursor-pointer" style={{ color: 'var(--text-muted)' }}><Pencil size={14} /></button>
+                    <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded-lg transition-colors cursor-pointer" style={{ color: 'var(--text-muted)' }}><Trash2 size={14} /></button>
                   </div>
                 </Td>
               </Tr>
             ))}</tbody>
           </Table>
-          <Pagination page={page} pages={totalPages} total={sorted.length} onPage={setPage} />
+          <Pagination page={page} pages={totalPages} total={sorted.length}
+            limit={limit} onPage={setPage} onLimitChange={(l) => { setLimit(l); setPage(1) }} />
         </Card>
       )}
 

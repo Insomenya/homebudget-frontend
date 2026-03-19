@@ -8,6 +8,7 @@ const uid = () => `w-${++counter}`
 const DEFAULT_WIDGETS: WidgetInstance[] = [
   { id: 'w-accounts', type: 'accounts' },
   { id: 'w-month', type: 'month-summary' },
+  { id: 'w-pending', type: 'pending' },
   { id: 'w-battle', type: 'battle' },
   { id: 'w-pie', type: 'pie-chart' },
   { id: 'w-trends', type: 'trends' },

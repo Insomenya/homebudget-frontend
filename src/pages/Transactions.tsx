@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, type FormEvent } from 'react'
+import { useState, useCallback, type FormEvent } from 'react'
 import { Plus, Trash2, Search, Check } from 'lucide-react'
 import { useApiData, useMutation } from '../hooks/useApi'
 import { useMeta } from '../hooks/useMeta'
@@ -65,6 +65,7 @@ const AddTxModal = ({ open, onClose, onCreated }: {
   }, [])
 
   const isShared = !!form.shared_group_id
+  const showLoan = form.type === 'expense'
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -75,7 +76,7 @@ const AddTxModal = ({ open, onClose, onCreated }: {
       type: form.type,
       account_id: form.account_id ? parseInt(form.account_id) : null,
       category_id: form.category_id ? parseInt(form.category_id) : null,
-      loan_id: form.loan_id ? parseInt(form.loan_id) : undefined,
+      loan_id: showLoan && form.loan_id ? parseInt(form.loan_id) : undefined,
       shared_group_id: isShared ? parseInt(form.shared_group_id) : undefined,
       paid_by_member_id: isShared && form.paid_by_member_id
         ? parseInt(form.paid_by_member_id) : undefined,
@@ -94,6 +95,12 @@ const AddTxModal = ({ open, onClose, onCreated }: {
             onChange={(e) => setForm({ ...form, amount: e.target.value })} />
         </div>
         <div className="grid grid-cols-2 gap-4">
+          <Select label="Тип" value={form.type}
+            onChange={(e) => setForm({ ...form, type: e.target.value, category_id: '', loan_id: '' })}>
+            <option value="expense">{label('transaction_types', 'expense')}</option>
+            <option value="income">{label('transaction_types', 'income')}</option>
+            <option value="transfer">{label('transaction_types', 'transfer')}</option>
+          </Select>
           <Select label="Категория" value={form.category_id}
             onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
             <option value="">—</option>
@@ -103,32 +110,26 @@ const AddTxModal = ({ open, onClose, onCreated }: {
               </option>
             ))}
           </Select>
-          <Select label="Тип" value={form.type}
-            onChange={(e) => setForm({ ...form, type: e.target.value })}>
-            <option value="expense">{label('transaction_types', 'expense')}</option>
-            <option value="income">{label('transaction_types', 'income')}</option>
-            <option value="transfer">{label('transaction_types', 'transfer')}</option>
-          </Select>
         </div>
         <Input label="Описание" value={form.description} placeholder="Продукты, такси…"
           onChange={(e) => setForm({ ...form, description: e.target.value })} />
-        <div className="grid grid-cols-2 gap-4">
-          <Select label="Счёт" value={form.account_id}
-            onChange={(e) => setForm({ ...form, account_id: e.target.value })}>
-            <option value="">—</option>
-            {(accs ?? []).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </Select>
+        <Select label="Счёт" value={form.account_id}
+          onChange={(e) => setForm({ ...form, account_id: e.target.value })}>
+          <option value="">—</option>
+          {(accs ?? []).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+        </Select>
+
+        {showLoan && (
           <Select label="Кредит" value={form.loan_id}
             onChange={(e) => setForm({ ...form, loan_id: e.target.value })}>
             <option value="">— Нет —</option>
             {(loans ?? []).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </Select>
-        </div>
+        )}
 
         <Select label="Деление расходов" value={form.shared_group_id}
           onChange={(e) => setForm({
-            ...form,
-            shared_group_id: e.target.value,
+            ...form, shared_group_id: e.target.value,
             paid_by_member_id: e.target.value ? form.paid_by_member_id : '',
           })}>
           <option value="">— Личный —</option>
@@ -176,45 +177,22 @@ const Transactions = () => {
         date: args.field === 'date' ? args.value : t.date,
         amount: args.field === 'amount' ? (parseFloat(args.value) || t.amount) : t.amount,
         description: args.field === 'description' ? args.value : t.description,
-        type: t.type,
-        account_id: t.account_id,
-        category_id: t.category_id,
-        loan_id: t.loan_id,
-        shared_group_id: t.shared_group_id,
+        type: t.type, account_id: t.account_id, category_id: t.category_id,
+        loan_id: t.loan_id, shared_group_id: t.shared_group_id,
         paid_by_member_id: t.paid_by_member_id,
-        is_pending: t.is_pending,
-        planned_id: t.planned_id,
+        is_pending: t.is_pending, planned_id: t.planned_id,
       })
     },
   )
 
-  // Trigger materialize on mount
-  useEffect(() => {
-    api.planned.execute(0).catch(() => {}) // ignore — just trigger materialize via dashboard
-  }, [])
-
   const handleDelete = async (id: number) => {
-    if (!confirm('Удалить?')) return
-    await deleteTx(id)
-    reload()
+    if (!confirm('Удалить?')) return; await deleteTx(id); reload()
   }
-
-  const handleConfirm = async (id: number) => {
-    await confirmTx(id)
-    reload()
-  }
-
+  const handleConfirm = async (id: number) => { await confirmTx(id); reload() }
   const handleSort = (col: string) =>
-    setF((p) => ({
-      ...p,
-      sort: col,
-      dir: p.sort === col && p.dir === 'DESC' ? 'ASC' : 'DESC',
-      page: 1,
-    }))
-
+    setF((p) => ({ ...p, sort: col, dir: p.sort === col && p.dir === 'DESC' ? 'ASC' : 'DESC', page: 1 }))
   const handleInline = async (tx: Transaction, field: string, value: string) => {
-    await updateTx({ id: tx.id, tx, field, value })
-    reload()
+    await updateTx({ id: tx.id, tx, field, value }); reload()
   }
 
   const catName = (id: number | null) => {
@@ -227,15 +205,8 @@ const Transactions = () => {
 
   return (
     <>
-      <PageHeader
-        title="Операции"
-        description={`Всего: ${data?.total ?? 0}`}
-        actions={
-          <Button onClick={() => setShowAdd(true)}>
-            <Plus size={16} /> Добавить
-          </Button>
-        }
-      />
+      <PageHeader title="Операции" description={`Всего: ${data?.total ?? 0}`}
+        actions={<Button onClick={() => setShowAdd(true)}><Plus size={16} /> Добавить</Button>} />
 
       <Card className="mb-4">
         <CardBody>
@@ -243,25 +214,19 @@ const Transactions = () => {
             <div className="flex-1 min-w-[200px] relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2"
                 style={{ color: 'var(--text-muted)' }} />
-              <input
-                type="text" placeholder="Поиск…" value={f.search}
+              <input type="text" placeholder="Поиск…" value={f.search}
                 onChange={(e) => setF((p) => ({ ...p, search: e.target.value, page: 1 }))}
                 className="w-full pl-9 pr-3 py-2 rounded-xl text-sm border outline-none app-text"
-                style={{ borderColor: 'var(--border)', background: 'var(--surface-overlay)' }}
-              />
+                style={{ borderColor: 'var(--border)', background: 'var(--surface-overlay)' }} />
             </div>
             <Input type="date" value={f.from}
-              onChange={(e) => setF((p) => ({ ...p, from: e.target.value, page: 1 }))}
-              className="w-40" />
+              onChange={(e) => setF((p) => ({ ...p, from: e.target.value, page: 1 }))} className="w-40" />
             <Input type="date" value={f.to}
-              onChange={(e) => setF((p) => ({ ...p, to: e.target.value, page: 1 }))}
-              className="w-40" />
-            <select
-              value={f.type}
+              onChange={(e) => setF((p) => ({ ...p, to: e.target.value, page: 1 }))} className="w-40" />
+            <select value={f.type}
               onChange={(e) => setF((p) => ({ ...p, type: e.target.value, page: 1 }))}
               className="px-3 py-2 rounded-xl text-sm border outline-none app-text"
-              style={{ borderColor: 'var(--border)', background: 'var(--surface-overlay)' }}
-            >
+              style={{ borderColor: 'var(--border)', background: 'var(--surface-overlay)' }}>
               <option value="">Все типы</option>
               <option value="expense">{label('transaction_types', 'expense')}</option>
               <option value="income">{label('transaction_types', 'income')}</option>
@@ -272,111 +237,69 @@ const Transactions = () => {
       </Card>
 
       <Card>
-        {loading ? (
-          <div className="flex justify-center py-12"><Spinner /></div>
-        ) : items.length === 0 ? (
+        {loading ? <div className="flex justify-center py-12"><Spinner /></div> : items.length === 0 ? (
           <EmptyState icon="📭" title="Нет операций" />
         ) : (
           <>
             <Table>
-              <thead>
-                <tr>
-                  <SortableTh col="date" sort={sortState} onSort={handleSort}>Дата</SortableTh>
-                  <SortableTh col="category" sort={sortState} onSort={handleSort}>Категория</SortableTh>
-                  <SortableTh col="description" sort={sortState} onSort={handleSort}>Описание</SortableTh>
-                  <SortableTh col="amount" sort={sortState} onSort={handleSort} align="right">Сумма</SortableTh>
-                  <SortableTh col="type" sort={sortState} onSort={handleSort}>Тип</SortableTh>
-                  <th className="px-4 py-3 w-20"
-                    style={{ borderBottom: '1px solid var(--border-subtle)' }} />
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((tx) => (
-                  <tr
-                    key={tx.id}
-                    className="transition-colors"
-                    style={{
-                      opacity: tx.is_pending ? 0.5 : 1,
-                      background: tx.is_pending
-                        ? 'color-mix(in srgb, var(--warning) 6%, transparent)'
-                        : undefined,
-                    }}
-                  >
-                    <Td>
-                      <InlineEdit
-                        value={tx.date} type="date"
-                        displayValue={fmtDate(tx.date)}
-                        onSave={(v) => handleInline(tx, 'date', v)}
-                      />
-                      {tx.shared_group_id && (
-                        <span className="ml-1 text-[10px]"
-                          style={{ color: 'var(--accent)' }}
-                          title="Деление расходов">👥</span>
-                      )}
+              <thead><tr>
+                <SortableTh col="date" sort={sortState} onSort={handleSort}>Дата</SortableTh>
+                <SortableTh col="description" sort={sortState} onSort={handleSort}>Описание</SortableTh>
+                <SortableTh col="amount" sort={sortState} onSort={handleSort} align="right">Сумма</SortableTh>
+                <SortableTh col="type" sort={sortState} onSort={handleSort}>Тип</SortableTh>
+                <th className="px-4 py-3 text-left font-semibold text-xs" style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>Категория</th>
+                <th className="px-4 py-3 w-20" style={{ borderBottom: '1px solid var(--border-subtle)' }} />
+              </tr></thead>
+              <tbody>{items.map((tx) => (
+                <tr key={tx.id} className="transition-colors" style={{
+                  opacity: tx.is_pending ? 0.55 : 1,
+                  background: tx.is_pending ? 'color-mix(in srgb, var(--warning) 6%, transparent)' : undefined,
+                }}>
+                  <Td>
+                    <InlineEdit value={tx.date} type="date" displayValue={fmtDate(tx.date)}
+                      onSave={(v) => handleInline(tx, 'date', v)} />
+                    {tx.shared_group_id && <span className="ml-1 text-[10px]" style={{ color: 'var(--accent)' }} title="Деление расходов">👥</span>}
+                    {tx.is_pending && <span className="ml-1 text-[10px]" style={{ color: 'var(--warning)' }} title="Ожидает проводки">⏳</span>}
+                  </Td>
+                  <Td>
+                    <InlineEdit value={tx.description} onSave={(v) => handleInline(tx, 'description', v)} />
+                  </Td>
+                  <Td align="right">
+                    <InlineEdit value={String(tx.amount)} type="number"
+                      displayValue={`${tx.type === 'income' ? '+' : tx.type === 'expense' ? '−' : ''}${fmtRub(tx.amount)}`}
+                      onSave={(v) => handleInline(tx, 'amount', v)}
+                      className={`tabular-nums ${tx.type === 'income' ? 'app-positive' : tx.type === 'expense' ? 'app-negative' : ''}`} />
+                  </Td>
+                  <Td><Badge variant={typeBadge[tx.type]}>{label('transaction_types', tx.type)}</Badge></Td>
+                  <Td className="text-sm">{catName(tx.category_id)}</Td>
+                  <Td>
+                    <div className="flex gap-0.5 justify-end">
                       {tx.is_pending && (
-                        <span className="ml-1 text-[10px]"
-                          style={{ color: 'var(--warning)' }}
-                          title="Ожидает проводки">⏳</span>
-                      )}
-                    </Td>
-                    <Td className="text-sm">{catName(tx.category_id)}</Td>
-                    <Td>
-                      <InlineEdit
-                        value={tx.description}
-                        onSave={(v) => handleInline(tx, 'description', v)}
-                      />
-                    </Td>
-                    <Td align="right">
-                      <InlineEdit
-                        value={String(tx.amount)} type="number"
-                        displayValue={`${tx.type === 'income' ? '+' : tx.type === 'expense' ? '−' : ''}${fmtRub(tx.amount)}`}
-                        onSave={(v) => handleInline(tx, 'amount', v)}
-                        className={`tabular-nums ${tx.type === 'income' ? 'app-positive' : tx.type === 'expense' ? 'app-negative' : ''}`}
-                      />
-                    </Td>
-                    <Td>
-                      <Badge variant={typeBadge[tx.type]}>
-                        {label('transaction_types', tx.type)}
-                      </Badge>
-                    </Td>
-                    <Td>
-                      <div className="flex gap-0.5 justify-end">
-                        {tx.is_pending && (
-                          <button
-                            onClick={() => handleConfirm(tx.id)}
-                            className="p-1.5 rounded-lg transition-colors cursor-pointer"
-                            style={{ color: 'var(--positive)' }}
-                            title="Провести"
-                          >
-                            <Check size={14} />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDelete(tx.id)}
+                        <button onClick={() => handleConfirm(tx.id)}
                           className="p-1.5 rounded-lg transition-colors cursor-pointer"
-                          style={{ color: 'var(--text-muted)' }}
-                        >
-                          <Trash2 size={14} />
+                          style={{ color: 'var(--positive)' }} title="Провести">
+                          <Check size={14} />
                         </button>
-                      </div>
-                    </Td>
-                  </tr>
-                ))}
-              </tbody>
+                      )}
+                      <button onClick={() => handleDelete(tx.id)}
+                        className="p-1.5 rounded-lg transition-colors cursor-pointer"
+                        style={{ color: 'var(--text-muted)' }}>
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </Td>
+                </tr>
+              ))}</tbody>
             </Table>
-            <Pagination
-              page={data!.page} pages={data!.pages} total={data!.total}
-              onPage={(p) => setF((prev) => ({ ...prev, page: p }))}
-            />
+            <Pagination page={data!.page} pages={data!.pages} total={data!.total}
+              limit={f.limit} onPage={(p) => setF((prev) => ({ ...prev, page: p }))}
+              onLimitChange={(l) => setF((prev) => ({ ...prev, limit: l, page: 1 }))} />
           </>
         )}
       </Card>
 
-      <AddTxModal
-        open={showAdd}
-        onClose={() => setShowAdd(false)}
-        onCreated={() => { setShowAdd(false); reload() }}
-      />
+      <AddTxModal open={showAdd} onClose={() => setShowAdd(false)}
+        onCreated={() => { setShowAdd(false); reload() }} />
     </>
   )
 }

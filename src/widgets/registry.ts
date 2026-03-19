@@ -8,6 +8,7 @@ import QuickAddWidget from './QuickAddWidget'
 import UpcomingWidget from './UpcomingWidget'
 import RecentWidget from './RecentWidget'
 import BattleWidget from './BattleWidget'
+import PendingWidget from './PendingWidget'
 
 export const WIDGET_REGISTRY: WidgetDef[] = [
   { type: 'accounts', label: 'Балансы счетов', icon: '💳', component: AccountsWidget },
@@ -19,6 +20,7 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
   { type: 'upcoming', label: 'Предстоящие', icon: '📅', component: UpcomingWidget },
   { type: 'recent', label: 'Последние', icon: '🕐', component: RecentWidget },
   { type: 'battle', label: 'Баланс сил', icon: '⚔️', component: BattleWidget },
+  { type: 'pending', label: 'Ожидают проводки', icon: '⏳', component: PendingWidget },
 ]
 
 export const getWidgetDef = (type: string): WidgetDef | undefined =>

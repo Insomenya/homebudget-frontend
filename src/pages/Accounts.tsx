@@ -19,8 +19,6 @@ import { fmtRub } from '../lib/format'
 import type { Account, Member, CreateAccountInput, UpdateAccountInput } from '../types'
 import type { AccForm, AccountModalProps } from '../types/pages'
 
-const PAGE_SIZE = 15
-
 const AccountModal = ({ open, account, members, onClose, onSaved }: AccountModalProps) => {
   const { meta } = useMeta()
   const isNew = !account
@@ -77,6 +75,7 @@ const Accounts = () => {
   const [editing, setEditing] = useState<Account | 'new' | null>(null)
   const [sort, setSort] = useState<SortState>({ col: 'name', dir: 'asc' })
   const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(20)
   const { run: remove } = useMutation((id: number) => api.accounts.delete(id))
   const { run: update } = useMutation((args: { id: number; acc: Account; field: string; value: string }) => {
     const a = args.acc
@@ -108,8 +107,8 @@ const Accounts = () => {
     }
   }), [accounts, sort])
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
-  const paged = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const totalPages = Math.max(1, Math.ceil(sorted.length / limit))
+  const paged = sorted.slice((page - 1) * limit, page * limit)
 
   if (loading) return <div className="flex justify-center py-20"><Spinner /></div>
 
@@ -137,8 +136,7 @@ const Accounts = () => {
                 <Td className="app-text-secondary">{label('currencies', acc.currency)}</Td>
                 <Td align="right">
                   <InlineEdit
-                    value={String(acc.initial_balance)}
-                    type="number"
+                    value={String(acc.initial_balance)} type="number"
                     displayValue={fmtRub(acc.initial_balance)}
                     onSave={(v) => handleInline(acc, 'initial_balance', v)}
                     className="font-bold tabular-nums"
@@ -152,7 +150,8 @@ const Accounts = () => {
               </Tr>
             ))}</tbody>
           </Table>
-          <Pagination page={page} pages={totalPages} total={sorted.length} onPage={setPage} />
+          <Pagination page={page} pages={totalPages} total={sorted.length}
+            limit={limit} onPage={setPage} onLimitChange={(l) => { setLimit(l); setPage(1) }} />
         </Card>
       )}
 
