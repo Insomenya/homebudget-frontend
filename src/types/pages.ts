@@ -1,4 +1,4 @@
-import type { Account, Category, Member, Recurrence, PlannedTransaction } from '.'
+import type { Account, Category, Member, PlannedTransaction } from '.'
 import type { Dashboard } from '.'
 
 // ── Transactions ────────────────────────────────────
@@ -107,8 +107,8 @@ export interface PlanModalProps {
 export interface LoanForm {
   principal: string
   annual_rate: string
-  term_months: string
   start_date: string
+  end_date: string
   extra_payment: string
 }
 

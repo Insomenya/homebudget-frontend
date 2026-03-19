@@ -161,6 +161,7 @@ export interface TransactionFilter {
   shared_group_id?: number
   paid_by_member_id?: number
   is_shared?: boolean
+  is_pending?: boolean
   page?: number
   limit?: number
   sort?: string
@@ -301,8 +302,8 @@ export interface AnalyticsFilter {
 export interface LoanCalcInput {
   principal: number
   annual_rate: number
-  term_months: number
   start_date: string
+  end_date: string
   extra_payment: number
 }
 
@@ -415,6 +416,24 @@ export interface CreateLoanInput {
   category_id: number | null
 }
 
+export interface UpdateLoanInput {
+  name: string
+  annual_rate: number
+  account_id: number | null
+  category_id: number | null
+  is_active: boolean
+}
+
+export interface LoanDayRow {
+  date: string
+  day: number
+  debt: number
+  daily_interest: number
+  accrued_interest: number
+  payment: number
+  is_payment_day: boolean
+}
+
 export interface LoanMonthGroup {
   month: string
   label: string
@@ -427,29 +446,4 @@ export interface LoanDailySchedule {
   total_paid: number
   total_interest: number
   months: LoanMonthGroup[]
-}
-
-export interface UpdateLoanInput {
-  name: string
-  annual_rate: number
-  account_id: number | null
-  category_id: number | null
-  is_active: boolean
-}
-
-export interface LoanDayRow {
-  date: string
-  debt: number
-  daily_interest: number
-  accrued_interest: number
-  payment: number
-  is_payment_day: boolean
-}
-
-export interface LoanDailySchedule {
-  loan: Loan
-  current_debt: number
-  total_paid: number
-  total_interest: number
-  days: LoanDayRow[]
 }

@@ -82,11 +82,13 @@ const api = {
     create: (d: CreateSharedGroupInput) => request<SharedGroup>('POST', '/groups', d),
     update: (id: number, d: UpdateSharedGroupInput) => request<SharedGroup>('PUT', `/groups/${id}`, d),
     delete: (id: number) => request<void>('DELETE', `/groups/${id}`),
-    settlement: (id: number, from?: string, to?: string) => request<Settlement>('GET', `/groups/${id}/settlement${qs({ from, to })}`),
-    turnover: (id: number, from?: string, to?: string) => request<Turnover>('GET', `/groups/${id}/turnover${qs({ from, to })}`),
+    settlement: (id: number, from?: string, to?: string) =>
+      request<Settlement>('GET', `/groups/${id}/settlement${qs({ from, to })}`),
+    turnover: (id: number, from?: string, to?: string) =>
+      request<Turnover>('GET', `/groups/${id}/turnover${qs({ from, to })}`),
   },
 
-    transactions: {
+  transactions: {
     list: (params: QsParams = {}) => request<TransactionList>('GET', `/transactions${qs(params)}`),
     get: (id: number) => request<Transaction>('GET', `/transactions/${id}`),
     create: (d: CreateTransactionInput) => request<Transaction>('POST', '/transactions', d),
@@ -102,7 +104,8 @@ const api = {
     update: (id: number, d: UpdatePlannedInput) => request<PlannedTransaction>('PUT', `/planned/${id}`, d),
     delete: (id: number) => request<void>('DELETE', `/planned/${id}`),
     upcoming: (days = 30) => request<PlannedTransaction[]>('GET', `/planned/upcoming?days=${days}`),
-    execute: (id: number, date?: string) => request<Transaction>('POST', `/planned/${id}/execute`, date ? { date } : {}),
+    execute: (id: number, date?: string) =>
+      request<Transaction>('POST', `/planned/${id}/execute`, date ? { date } : {}),
   },
 
   loans: {
