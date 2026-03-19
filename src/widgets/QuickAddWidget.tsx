@@ -14,7 +14,7 @@ interface QuickForm {
   shared_group_id: string; paid_by_member_id: string
 }
 
-const QuickAddWidget = ({ onRemove }: WidgetComponentProps) => {
+const QuickAddWidget = ({ onRemove, onDataChanged }: WidgetComponentProps) => {
   const { label } = useMeta()
   const [form, setForm] = useState<QuickForm>({
     amount: '', description: '', type: 'expense',
@@ -54,6 +54,7 @@ const QuickAddWidget = ({ onRemove }: WidgetComponentProps) => {
     })
     setSuccess(true)
     setTimeout(() => setSuccess(false), 2000)
+    onDataChanged?.()
   }
 
   return (

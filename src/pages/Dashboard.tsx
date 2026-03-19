@@ -25,10 +25,11 @@ import { getWidgetDef } from '../widgets/registry'
 import type { Dashboard as DashboardData } from '../types'
 import type { WidgetInstance } from '../types/stores'
 
-const SortableWidget = ({ widget, data, onRemove }: {
+const SortableWidget = ({ widget, data, onRemove, onDataChanged }: {
   widget: WidgetInstance
   data: DashboardData | null
   onRemove: () => void
+  onDataChanged: () => void
 }) => {
   const def = getWidgetDef(widget.type)
   const {
@@ -54,7 +55,7 @@ const SortableWidget = ({ widget, data, onRemove }: {
         {...listeners}
         className="contents [&_.drag-handle]:cursor-grab [&_.drag-handle]:active:cursor-grabbing"
       >
-        <Comp data={data} onRemove={onRemove} />
+        <Comp data={data} onRemove={onRemove} onDataChanged={onDataChanged} />
       </div>
     </div>
   )
@@ -88,6 +89,10 @@ const Dashboard = () => {
     reload()
   }, [addWidget, reload])
 
+  const handleDataChanged = useCallback(() => {
+    reload()
+  }, [reload])
+
   if (loading) return <div className="flex items-center justify-center py-32"><Spinner size={32} /></div>
   if (error) return <div className="text-center py-32 app-negative">Ошибка: {error}</div>
 
@@ -108,6 +113,7 @@ const Dashboard = () => {
                 widget={w}
                 data={data}
                 onRemove={() => removeWidget(w.id)}
+                onDataChanged={handleDataChanged}
               />
             ))}
           </div>

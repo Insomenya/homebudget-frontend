@@ -1,4 +1,4 @@
-import { useApiData, useMutation } from '../hooks/useApi'
+import { useApiData } from '../hooks/useApi'
 import api from '../api/client'
 import type { WidgetComponentProps } from '../types/widgets'
 import type { PlannedTransaction } from '../types'
@@ -6,7 +6,7 @@ import WidgetShell from './WidgetShell'
 import { formatRub, formatDate } from '../lib/charts'
 
 const UpcomingWidget = ({ onRemove }: WidgetComponentProps) => {
-  const { data: items, reload } = useApiData<PlannedTransaction[]>(
+  const { data: items } = useApiData<PlannedTransaction[]>(
     () => api.planned.upcoming(14), [],
   )
 

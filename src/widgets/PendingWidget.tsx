@@ -5,18 +5,19 @@ import type { WidgetComponentProps } from '../types/widgets'
 import WidgetShell from './WidgetShell'
 import { formatRub, formatDate } from '../lib/charts'
 
-const PendingWidget = ({ data, onRemove }: WidgetComponentProps) => {
+const PendingWidget = ({ data, onRemove, onDataChanged }: WidgetComponentProps) => {
   const pending = data?.pending ?? []
   const { run: confirm } = useMutation((id: number) => api.transactions.confirm(id))
   const { run: remove } = useMutation((id: number) => api.transactions.delete(id))
 
   const handleConfirm = async (id: number) => {
     await confirm(id)
-    // Dashboard will reload on next fetch
+    onDataChanged?.()
   }
 
   const handleDelete = async (id: number) => {
     await remove(id)
+    onDataChanged?.()
   }
 
   return (

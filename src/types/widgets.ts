@@ -3,6 +3,7 @@ import type { Dashboard } from '.'
 export interface WidgetComponentProps {
   data: Dashboard | null
   onRemove: () => void
+  onDataChanged?: () => void
 }
 
 export interface WidgetDef {
