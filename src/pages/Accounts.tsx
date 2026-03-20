@@ -119,12 +119,18 @@ const Accounts = () => {
     reload()
   }
 
-  const totalBalance = useMemo(
-    () => (accounts ?? []).reduce((s, a) => s + a.current_balance, 0),
+  // Filter out hidden accounts (loan accounts)
+  const visibleAccounts = useMemo(
+    () => (accounts ?? []).filter((a) => !a.is_hidden),
     [accounts],
   )
 
-  const sorted = useMemo(() => sortItems(accounts ?? [], sort, (a, col) => {
+  const totalBalance = useMemo(
+    () => visibleAccounts.reduce((s, a) => s + a.current_balance, 0),
+    [visibleAccounts],
+  )
+
+  const sorted = useMemo(() => sortItems(visibleAccounts, sort, (a, col) => {
     switch (col) {
       case 'name': return a.name
       case 'type': return a.type
@@ -132,7 +138,7 @@ const Accounts = () => {
       case 'current_balance': return a.current_balance
       default: return ''
     }
-  }), [accounts, sort])
+  }), [visibleAccounts, sort])
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / limit))
   const paged = sorted.slice((page - 1) * limit, page * limit)
@@ -148,7 +154,6 @@ const Accounts = () => {
           </Button>
         } />
 
-      {/* Total balance card */}
       {sorted.length > 0 && (
         <div className="mb-4 p-4 rounded-2xl border app-card-gradient app-shadow"
           style={{ borderColor: 'var(--border)' }}>

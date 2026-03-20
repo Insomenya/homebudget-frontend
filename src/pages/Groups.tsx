@@ -29,23 +29,44 @@ const SettlementModal = ({ groupId, onClose }: SettlementModalProps) => {
     <Modal open={!!groupId} onClose={onClose} title="Расчёт долгов" className="max-w-2xl">
       {loading ? <div className="flex justify-center py-8"><Spinner /></div> : data ? (
         <div className="space-y-6">
+          {/* Summary */}
+          <div className="p-3 rounded-xl" style={{ background: 'var(--surface-overlay)' }}>
+            <div className="flex items-center justify-between">
+              <span className="text-sm app-text-secondary">Общие расходы</span>
+              <span className="text-lg font-bold tabular-nums">{data.total_expenses.toLocaleString('ru-RU')} ₽</span>
+            </div>
+          </div>
+
+          {/* Balances table */}
           <div>
-            <h4 className="text-sm font-semibold mb-2 app-text-secondary">Балансы</h4>
+            <h4 className="text-sm font-semibold mb-2 app-text-secondary">Балансы участников</h4>
             <Table>
               <thead>
                 <tr>
-                  <Th>Участник</Th><Th>Оплатил</Th><Th>Доля</Th><Th>Баланс</Th>
+                  <Th>Участник</Th>
+                  <Th>Оплатил</Th>
+                  <Th>Доля</Th>
+                  <Th>% от общего</Th>
+                  <Th>Баланс</Th>
                 </tr>
               </thead>
               <tbody>
                 {data.balances.map((b) => (
                   <Tr key={b.member_id}>
-                    <Td>{b.member_icon} {b.member_name}</Td>
+                    <Td>
+                      <span className="flex items-center gap-2">
+                        <span>{b.member_icon}</span>
+                        <span className="font-medium">{b.member_name}</span>
+                      </span>
+                    </Td>
                     <Td align="right" className="tabular-nums">
                       {b.total_paid.toLocaleString('ru-RU')} ₽
                     </Td>
                     <Td align="right" className="tabular-nums">
                       {b.fair_share.toLocaleString('ru-RU')} ₽
+                    </Td>
+                    <Td align="right" className="tabular-nums app-text-muted">
+                      {b.percentage.toFixed(1)}%
                     </Td>
                     <Td align="right"
                       className={`tabular-nums font-semibold ${b.balance >= 0 ? 'app-positive' : 'app-negative'}`}>
@@ -56,6 +77,8 @@ const SettlementModal = ({ groupId, onClose }: SettlementModalProps) => {
               </tbody>
             </Table>
           </div>
+
+          {/* Debts */}
           {data.debts.length > 0 && (
             <div>
               <h4 className="text-sm font-semibold mb-2 app-text-secondary">Нужно перевести</h4>
@@ -75,6 +98,12 @@ const SettlementModal = ({ groupId, onClose }: SettlementModalProps) => {
                   </Card>
                 ))}
               </div>
+            </div>
+          )}
+
+          {data.debts.length === 0 && (
+            <div className="text-center py-4">
+              <p className="text-sm app-text-muted">Взаиморасчёт не требуется ✅</p>
             </div>
           )}
         </div>
