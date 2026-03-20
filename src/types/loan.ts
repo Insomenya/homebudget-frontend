@@ -8,7 +8,10 @@ export interface Loan {
   monthly_payment: number
   already_paid: number
   account_id: number | null
+  default_account_id: number | null
+  loan_account_id: number | null
   category_id: number | null
+  planned_id: number | null
   is_active: boolean
   created_at: string
   updated_at: string
@@ -22,13 +25,16 @@ export interface CreateLoanInput {
   end_date: string
   already_paid: number
   account_id: number | null
+  default_account_id: number | null
   category_id: number | null
+  credit_to_account?: boolean
+  create_planned?: boolean
 }
 
 export interface UpdateLoanInput {
   name: string
   annual_rate: number
-  account_id: number | null
+  default_account_id: number | null
   category_id: number | null
   is_active: boolean
 }
