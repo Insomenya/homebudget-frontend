@@ -12,8 +12,7 @@ export interface Transaction {
   shared_group_id: number | null
   paid_by_member_id: number | null
   loan_id: number | null
-  is_pending: boolean
-  planned_id: number | null
+  reminder_id: number | null
   created_at: string
   updated_at: string
 }
@@ -29,8 +28,7 @@ export interface CreateTransactionInput {
   shared_group_id?: number | null
   paid_by_member_id?: number | null
   loan_id?: number | null
-  is_pending?: boolean
-  planned_id?: number | null
+  reminder_id?: number | null
 }
 
 export type UpdateTransactionInput = CreateTransactionInput
@@ -45,7 +43,6 @@ export interface TransactionFilter {
   shared_group_id?: number
   paid_by_member_id?: number
   is_shared?: boolean
-  is_pending?: boolean
   page?: number
   limit?: number
   sort?: string

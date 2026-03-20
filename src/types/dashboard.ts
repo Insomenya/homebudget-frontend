@@ -1,6 +1,6 @@
 import type { AccountBalance } from './account'
 import type { Transaction } from './transaction'
-import type { PlannedTransaction } from './planned'
+import type { PlannedTransaction, PlannedReminder } from './planned'
 import type { GroupSettlementSummary } from './group'
 
 export interface CategoryTotal {
@@ -22,5 +22,5 @@ export interface Dashboard {
   settlements: GroupSettlementSummary[]
   recent: Transaction[]
   upcoming: PlannedTransaction[]
-  pending: Transaction[]
+  reminders: PlannedReminder[]
 }

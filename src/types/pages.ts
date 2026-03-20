@@ -1,5 +1,4 @@
-import type { Account, Category, Member, PlannedTransaction } from '.'
-import type { Dashboard } from '.'
+import type { Category, Member, PlannedTransaction } from '.'
 
 // ── Transactions ────────────────────────────────────
 export interface TxFilters {
@@ -39,7 +38,7 @@ export interface AccForm {
 
 export interface AccountModalProps {
   open: boolean
-  account: Account | null
+  account: import('./account').Account | null
   members: Member[]
   onClose: () => void
   onSaved: () => void
@@ -88,12 +87,11 @@ export interface PlanForm {
   recurrence: string
   start_date: string
   end_date: string
-  account_id: string
   category_id: string
   shared_group_id: string
   paid_by_member_id: string
-  notify_days: string
-  is_auto: boolean
+  notify_days_before: string
+  overdue_days_limit: string
 }
 
 export interface PlanModalProps {
@@ -121,5 +119,5 @@ export interface StatCardProps {
 // ── Dashboard ───────────────────────────────────────
 export interface PlaceholderWidgetProps {
   type: string
-  data: Dashboard | null
+  data: import('./dashboard').Dashboard | null
 }

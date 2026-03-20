@@ -4,7 +4,8 @@ import type {
   Category, CreateCategoryInput, UpdateCategoryInput,
   SharedGroup, CreateSharedGroupInput, UpdateSharedGroupInput,
   Transaction, TransactionList, CreateTransactionInput, UpdateTransactionInput,
-  PlannedTransaction, CreatePlannedInput, UpdatePlannedInput,
+  PlannedTransaction, PlannedReminder, CreatePlannedInput, UpdatePlannedInput,
+  ExecuteReminderInput, PlannedForecastItem,
   Settlement, Turnover,
   CategoryBreakdown, TrendData,
   LoanCalcInput, LoanCalcResult,
@@ -67,6 +68,7 @@ const api = {
   accounts: {
     list: (inclArch = false) =>
       request<Account[]>('GET', `/accounts?include_archived=${inclArch}`),
+    listAll: () => request<Account[]>('GET', '/accounts/all'),
     get: (id: number) => request<Account>('GET', `/accounts/${id}`),
     create: (d: CreateAccountInput) => request<Account>('POST', '/accounts', d),
     update: (id: number, d: UpdateAccountInput) =>
@@ -108,8 +110,8 @@ const api = {
     update: (id: number, d: UpdateTransactionInput) =>
       request<Transaction>('PUT', `/transactions/${id}`, d),
     delete: (id: number) => request<void>('DELETE', `/transactions/${id}`),
-    confirm: (id: number) =>
-      request<Transaction>('POST', `/transactions/${id}/confirm`),
+    undo: (id: number) =>
+      request<void>('POST', `/transactions/${id}/undo`),
   },
 
   planned: {
@@ -124,10 +126,18 @@ const api = {
     delete: (id: number) => request<void>('DELETE', `/planned/${id}`),
     upcoming: (days = 30) =>
       request<PlannedTransaction[]>('GET', `/planned/upcoming?days=${days}`),
-    execute: (id: number, date?: string) =>
-      request<Transaction>('POST', `/planned/${id}/execute`, date ? { date } : {}),
     materialize: () =>
       request<{ created: number }>('POST', '/planned/materialize'),
+    activate: (id: number) =>
+      request<PlannedTransaction>('POST', `/planned/${id}/activate`),
+    reminders: () =>
+      request<PlannedReminder[]>('GET', '/planned/reminders'),
+    executeReminder: (id: number, d?: ExecuteReminderInput) =>
+      request<Transaction>('POST', `/planned/${id}/execute`, d ?? {}),
+    undoReminder: (id: number) =>
+      request<void>('POST', `/planned/${id}/undo`),
+    forecast: (days = 30) =>
+      request<PlannedForecastItem[]>('GET', `/planned/forecast?days=${days}`),
   },
 
   loans: {

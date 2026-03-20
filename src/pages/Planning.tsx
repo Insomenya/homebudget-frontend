@@ -1,5 +1,5 @@
 import { useState, useMemo, type FormEvent } from 'react'
-import { Plus, Pencil, CalendarClock, Trash2 } from 'lucide-react'
+import { Plus, Pencil, CalendarClock, Trash2, Play, Power } from 'lucide-react'
 import { useApiData, useMutation } from '../hooks/useApi'
 import { useMeta } from '../hooks/useMeta'
 import api from '../api/client'
@@ -17,7 +17,7 @@ import { Table, Td, Tr } from '../components/ui/Table'
 import { SortableTh, toggleSort, sortItems, type SortState } from '../components/ui/SortableTable'
 import InlineEdit from '../components/ui/InlineEdit'
 import DatePicker from '../components/ui/DatePicker'
-import type { PlannedTransaction, Account, Category, Member, SharedGroup, CreatePlannedInput, UpdatePlannedInput } from '../types'
+import type { PlannedTransaction, Category, Member, SharedGroup, CreatePlannedInput, UpdatePlannedInput } from '../types'
 import type { PlanForm, PlanModalProps } from '../types/pages'
 import { fmtDate, fmtRub } from '../lib/format'
 
@@ -29,21 +29,21 @@ const PlanModal = ({ open, plan, onClose, onSaved }: PlanModalProps) => {
       ? {
           name: plan.name, amount: String(plan.amount), type: plan.type,
           recurrence: plan.recurrence, start_date: plan.start_date,
-          end_date: plan.end_date ?? '', account_id: plan.account_id ? String(plan.account_id) : '',
+          end_date: plan.end_date ?? '',
           category_id: plan.category_id ? String(plan.category_id) : '',
           shared_group_id: plan.shared_group_id ? String(plan.shared_group_id) : '',
           paid_by_member_id: plan.paid_by_member_id ? String(plan.paid_by_member_id) : '',
-          notify_days: String(plan.notify_days), is_auto: plan.is_auto,
+          notify_days_before: String(plan.notify_days_before),
+          overdue_days_limit: String(plan.overdue_days_limit),
         }
       : {
           name: '', amount: '', type: 'expense', recurrence: 'monthly',
           start_date: new Date().toISOString().split('T')[0], end_date: '',
-          account_id: '', category_id: '', shared_group_id: '',
-          paid_by_member_id: '', notify_days: '3', is_auto: false,
+          category_id: '', shared_group_id: '',
+          paid_by_member_id: '', notify_days_before: '3', overdue_days_limit: '30',
         },
   )
 
-  const { data: accs } = useApiData<Account[]>(() => api.accounts.list(), [])
   const { data: cats } = useApiData<Category[]>(() => api.categories.list(), [])
   const { data: groups } = useApiData<SharedGroup[]>(() => api.groups.list(), [])
   const { data: members } = useApiData<Member[]>(() => api.members.list(), [])
@@ -60,11 +60,11 @@ const PlanModal = ({ open, plan, onClose, onSaved }: PlanModalProps) => {
       name: form.name, amount: parseFloat(form.amount) || 0, type: form.type,
       recurrence: form.recurrence, start_date: form.start_date,
       end_date: form.end_date || undefined,
-      account_id: form.account_id ? parseInt(form.account_id) : null,
       category_id: form.category_id ? parseInt(form.category_id) : null,
       shared_group_id: isShared ? parseInt(form.shared_group_id) : undefined,
       paid_by_member_id: isShared && form.paid_by_member_id ? parseInt(form.paid_by_member_id) : undefined,
-      notify_days: parseInt(form.notify_days) || 3, is_auto: form.is_auto,
+      notify_days_before: parseInt(form.notify_days_before) || 3,
+      overdue_days_limit: parseInt(form.overdue_days_limit) || 30,
     })
     onSaved()
   }
@@ -89,34 +89,31 @@ const PlanModal = ({ open, plan, onClose, onSaved }: PlanModalProps) => {
           <DatePicker label="Дата начала" value={form.start_date} onChange={(v) => setForm({ ...form, start_date: v })} />
           <DatePicker label="Дата окончания" value={form.end_date} onChange={(v) => setForm({ ...form, end_date: v })} placeholder="Без ограничения" />
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <Select label="Счёт" value={form.account_id} onChange={(e) => setForm({ ...form, account_id: e.target.value })}>
-            <option value="">—</option>
-            {(accs ?? []).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </Select>
-          <Select label="Категория" value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
-            <option value="">—</option>
-            {(cats ?? []).filter((c) => c.type === form.type).map((c) => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-          </Select>
-        </div>
+        <Select label="Категория" value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
+          <option value="">—</option>
+          {(cats ?? []).filter((c) => c.type === form.type).map((c) => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+        </Select>
         <Select label="Деление расходов" value={form.shared_group_id}
           onChange={(e) => setForm({ ...form, shared_group_id: e.target.value, paid_by_member_id: e.target.value ? form.paid_by_member_id : '' })}>
           <option value="">— Нет —</option>
           {(groups ?? []).map((g) => <option key={g.id} value={g.id}>{g.icon} {g.name}</option>)}
         </Select>
         {isShared && (
-          <Select label="Кто оплатил" value={form.paid_by_member_id} onChange={(e) => setForm({ ...form, paid_by_member_id: e.target.value })}>
+          <Select label="Кто оплатит" value={form.paid_by_member_id} onChange={(e) => setForm({ ...form, paid_by_member_id: e.target.value })}>
             <option value="">—</option>
             {(members ?? []).map((m) => <option key={m.id} value={m.id}>{m.icon} {m.name}</option>)}
           </Select>
         )}
-        <div className="grid grid-cols-2 gap-4 items-center">
-          <Input label="Напоминание за (дней)" type="number" min="0" value={form.notify_days} onChange={(e) => setForm({ ...form, notify_days: e.target.value })} />
-          <label className="flex items-center gap-2 cursor-pointer pt-5">
-            <input type="checkbox" checked={form.is_auto} onChange={(e) => setForm({ ...form, is_auto: e.target.checked })} className="w-4 h-4 rounded" />
-            <span className="text-sm app-text-secondary">Автовыполнение</span>
-          </label>
+        <div className="grid grid-cols-2 gap-4">
+          <Input label="Напоминание за (дней)" type="number" min="0" value={form.notify_days_before}
+            onChange={(e) => setForm({ ...form, notify_days_before: e.target.value })} />
+          <Input label="Макс. просрочка (дней)" type="number" min="0" value={form.overdue_days_limit}
+            onChange={(e) => setForm({ ...form, overdue_days_limit: e.target.value })} />
         </div>
+        <p className="text-[11px] app-text-muted">
+          Напоминание появится за указанное число дней до срока.
+          Если платёж просрочен более чем на «макс. просрочку» дней — он деактивируется.
+        </p>
         {error && <p className="text-sm app-negative">{error}</p>}
         <Button type="submit" loading={loading} className="self-end">{isNew ? 'Создать' : 'Сохранить'}</Button>
       </form>
@@ -132,8 +129,10 @@ const Planning = () => {
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(20)
   const { run: remove } = useMutation((id: number) => api.planned.delete(id))
+  const { run: activate } = useMutation((id: number) => api.planned.activate(id))
 
   const handleDelete = async (id: number) => { if (!confirm('Удалить?')) return; await remove(id); reload() }
+  const handleActivate = async (id: number) => { await activate(id); reload() }
 
   const sorted = useMemo(() => {
     if (!plans) return []
@@ -170,7 +169,7 @@ const Planning = () => {
               <SortableTh col="recurrence" sort={sort} onSort={(c) => { setSort(toggleSort(sort, c)); setPage(1) }}>Период</SortableTh>
               <SortableTh col="next_due" sort={sort} onSort={(c) => { setSort(toggleSort(sort, c)); setPage(1) }}>Следующий</SortableTh>
               <SortableTh col="is_active" sort={sort} onSort={(c) => { setSort(toggleSort(sort, c)); setPage(1) }}>Статус</SortableTh>
-              <th className="px-4 py-3 w-20" style={{ borderBottom: '1px solid var(--border-subtle)' }} />
+              <th className="px-4 py-3 w-24" style={{ borderBottom: '1px solid var(--border-subtle)' }} />
             </tr></thead>
             <tbody>{paged.map((p) => (
               <Tr key={p.id}>
@@ -189,10 +188,21 @@ const Planning = () => {
                 </Td>
                 <Td><Badge variant={p.type === 'income' ? 'success' : 'danger'}>{label('transaction_types', p.type)}</Badge></Td>
                 <Td><Badge variant="neutral">{label('recurrence_types', p.recurrence)}</Badge></Td>
-                <Td>{fmtDate(p.next_due)}</Td>
-                <Td><Badge variant={p.is_active ? 'success' : 'neutral'}>{p.is_active ? 'Активен' : 'Завершён'}</Badge></Td>
+                <Td className="tabular-nums">{fmtDate(p.next_due)}</Td>
+                <Td>
+                  <Badge variant={p.is_active ? 'success' : 'neutral'}>
+                    {p.is_active ? 'Активен' : 'Неактивен'}
+                  </Badge>
+                </Td>
                 <Td>
                   <div className="flex gap-1 justify-end">
+                    {!p.is_active && (
+                      <button onClick={() => handleActivate(p.id)}
+                        className="p-1.5 rounded-lg transition-colors cursor-pointer"
+                        style={{ color: 'var(--positive)' }} title="Активировать">
+                        <Power size={14} />
+                      </button>
+                    )}
                     <button onClick={() => setEditing(p)} className="p-1.5 rounded-lg transition-colors cursor-pointer" style={{ color: 'var(--text-muted)' }}><Pencil size={14} /></button>
                     <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded-lg transition-colors cursor-pointer" style={{ color: 'var(--text-muted)' }}><Trash2 size={14} /></button>
                   </div>

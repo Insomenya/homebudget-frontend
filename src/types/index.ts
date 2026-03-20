@@ -10,7 +10,11 @@ export type {
   TxType, Transaction, CreateTransactionInput, UpdateTransactionInput,
   TransactionFilter, TransactionList,
 } from './transaction'
-export type { Recurrence, PlannedTransaction, CreatePlannedInput, UpdatePlannedInput } from './planned'
+export type {
+  Recurrence, PlannedTransaction, PlannedReminder,
+  CreatePlannedInput, UpdatePlannedInput,
+  ExecuteReminderInput, PlannedForecastItem,
+} from './planned'
 export type { CategorySlice, CategoryBreakdown, TrendPoint, TrendData, AnalyticsFilter } from './analytics'
 export type {
   Loan, CreateLoanInput, UpdateLoanInput,

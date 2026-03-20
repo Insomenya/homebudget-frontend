@@ -1,5 +1,5 @@
 import { useState, useCallback, type FormEvent } from 'react'
-import { Plus, Trash2, Search, Check } from 'lucide-react'
+import { Plus, Trash2, Search, Undo2 } from 'lucide-react'
 import { useApiData, useMutation } from '../hooks/useApi'
 import { useMeta } from '../hooks/useMeta'
 import api from '../api/client'
@@ -47,7 +47,7 @@ const AddTxModal = ({ open, onClose, onCreated }: {
     type: 'expense', account_id: '', category_id: '', loan_id: '',
     shared_group_id: '', paid_by_member_id: '',
   })
-  const { data: accs } = useApiData<Account[]>(() => api.accounts.list(), [])
+  const { data: accs } = useApiData<Account[]>(() => api.accounts.listAll(), [])
   const { data: cats } = useApiData<Category[]>(() => api.categories.list(), [])
   const { data: loans } = useApiData<Loan[]>(() => api.loans.list(), [])
   const { data: groups } = useApiData<SharedGroup[]>(() => api.groups.list(), [])
@@ -106,7 +106,11 @@ const AddTxModal = ({ open, onClose, onCreated }: {
         <Select label="Счёт" value={form.account_id}
           onChange={(e) => setForm({ ...form, account_id: e.target.value })}>
           <option value="">—</option>
-          {(accs ?? []).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          {(accs ?? []).map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.is_hidden ? '🔒 ' : ''}{a.name}
+            </option>
+          ))}
         </Select>
         {showLoan && (
           <Select label="Кредит" value={form.loan_id}
@@ -145,7 +149,7 @@ const Transactions = () => {
   const fetcher = useCallback(() => api.transactions.list(f), [fKey])
   const { data, loading, reload } = useApiData<TransactionList>(fetcher, [fKey])
   const { run: deleteTx } = useMutation((id: number) => api.transactions.delete(id))
-  const { run: confirmTx } = useMutation((id: number) => api.transactions.confirm(id))
+  const { run: undoTx } = useMutation((id: number) => api.transactions.undo(id))
   const { run: updateTx } = useMutation(
     (args: { id: number; tx: Transaction; field: string; value: string }) => {
       const t = args.tx
@@ -155,13 +159,16 @@ const Transactions = () => {
         description: args.field === 'description' ? args.value : t.description,
         type: t.type, account_id: t.account_id, category_id: t.category_id,
         loan_id: t.loan_id, shared_group_id: t.shared_group_id, paid_by_member_id: t.paid_by_member_id,
-        is_pending: t.is_pending, planned_id: t.planned_id,
+        reminder_id: t.reminder_id,
       })
     },
   )
 
   const handleDelete = async (id: number) => { if (!confirm('Удалить?')) return; await deleteTx(id); reload() }
-  const handleConfirm = async (id: number) => { await confirmTx(id); reload() }
+  const handleUndo = async (id: number) => {
+    if (!confirm('Отменить проводку? Транзакция будет удалена и напоминание восстановлено.')) return
+    await undoTx(id); reload()
+  }
   const handleSort = (col: string) => setF((p) => ({ ...p, sort: col, dir: p.sort === col && p.dir === 'DESC' ? 'ASC' : 'DESC', page: 1 }))
   const handleInline = async (tx: Transaction, field: string, value: string) => { await updateTx({ id: tx.id, tx, field, value }); reload() }
 
@@ -217,14 +224,11 @@ const Transactions = () => {
                 <th className="px-4 py-3 w-20" style={{ borderBottom: '1px solid var(--border-subtle)' }} />
               </tr></thead>
               <tbody>{items.map((tx) => (
-                <tr key={tx.id} className="transition-colors" style={{
-                  opacity: tx.is_pending ? 0.55 : 1,
-                  background: tx.is_pending ? 'color-mix(in srgb, var(--warning) 6%, transparent)' : undefined,
-                }}>
+                <tr key={tx.id} className="transition-colors">
                   <Td>
                     <InlineEdit value={tx.date} type="date" displayValue={fmtDate(tx.date)} onSave={(v) => handleInline(tx, 'date', v)} />
                     {tx.shared_group_id && <span className="ml-1 text-[10px]" style={{ color: 'var(--accent)' }} title="Деление расходов">👥</span>}
-                    {tx.is_pending && <span className="ml-1 text-[10px]" style={{ color: 'var(--warning)' }} title="Ожидает проводки">⏳</span>}
+                    {tx.reminder_id && <span className="ml-1 text-[10px]" style={{ color: 'var(--chart-3)' }} title="Из отложенного платежа">📅</span>}
                   </Td>
                   <Td><InlineEdit value={tx.description} onSave={(v) => handleInline(tx, 'description', v)} /></Td>
                   <Td align="right">
@@ -237,8 +241,12 @@ const Transactions = () => {
                   <Td className="text-sm">{catName(tx.category_id)}</Td>
                   <Td>
                     <div className="flex gap-0.5 justify-end">
-                      {tx.is_pending && (
-                        <button onClick={() => handleConfirm(tx.id)} className="p-1.5 rounded-lg transition-colors cursor-pointer" style={{ color: 'var(--positive)' }} title="Провести"><Check size={14} /></button>
+                      {tx.reminder_id && (
+                        <button onClick={() => handleUndo(tx.id)}
+                          className="p-1.5 rounded-lg transition-colors cursor-pointer"
+                          style={{ color: 'var(--warning)' }} title="Отменить проводку">
+                          <Undo2 size={14} />
+                        </button>
                       )}
                       <button onClick={() => handleDelete(tx.id)} className="p-1.5 rounded-lg transition-colors cursor-pointer" style={{ color: 'var(--text-muted)' }}><Trash2 size={14} /></button>
                     </div>

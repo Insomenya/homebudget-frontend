@@ -26,7 +26,7 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
   { type: 'upcoming', label: 'Предстоящие', icon: '📅', component: UpcomingWidget },
   { type: 'recent', label: 'Последние', icon: '🕐', component: RecentWidget },
   { type: 'battle', label: 'Баланс сил', icon: '⚔️', component: BattleWidget },
-  { type: 'pending', label: 'Ожидают проводки', icon: '⏳', component: PendingWidget },
+  { type: 'pending', label: 'Напоминания', icon: '🔔', component: PendingWidget },
 ]
 
 export const getWidgetDef = (type: string): WidgetDef | undefined =>
