@@ -64,3 +64,14 @@ export interface BattleWidgetData {
     amount: number
   }>
 }
+
+// ── Forecast ────────────────────────────────────────
+
+export interface ForecastToggleItem {
+  planned_id: number
+  name: string
+  amount: number
+  type: string
+  due_date: string
+  enabled: boolean
+}

@@ -12,6 +12,7 @@ import PendingWidget from './PendingWidget'
 import CategoryBarWidget from './CategoryBarWidget'
 import IncomeExpenseWidget from './IncomeExpenseWidget'
 import DailyHeatmapWidget from './DailyHeatmapWidget'
+import ForecastWidget from './ForecastWidget'
 
 export const WIDGET_REGISTRY: WidgetDef[] = [
   { type: 'accounts', label: 'Балансы счетов', icon: '💳', component: AccountsWidget },
@@ -22,6 +23,7 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
   { type: 'income-expense', label: 'Доходы vs Расходы', icon: '📊', component: IncomeExpenseWidget },
   { type: 'trends', label: 'Динамика', icon: '📈', component: TrendsWidget },
   { type: 'daily-heatmap', label: 'Тепловая карта расходов', icon: '🗓️', component: DailyHeatmapWidget },
+  { type: 'forecast', label: 'Прогноз балансов', icon: '🔮', component: ForecastWidget },
   { type: 'quick-add', label: 'Быстрая запись', icon: '⚡', component: QuickAddWidget },
   { type: 'upcoming', label: 'Предстоящие', icon: '📅', component: UpcomingWidget },
   { type: 'recent', label: 'Последние', icon: '🕐', component: RecentWidget },

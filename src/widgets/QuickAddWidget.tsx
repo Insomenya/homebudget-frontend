@@ -23,7 +23,7 @@ const QuickAddWidget = ({ onRemove, onDataChanged }: WidgetComponentProps) => {
   })
   const [success, setSuccess] = useState(false)
 
-  const { data: accs } = useApiData<Account[]>(() => api.accounts.list(), [])
+  const { data: accs } = useApiData<Account[]>(() => api.accounts.listAll(), [])
   const { data: cats } = useApiData<Category[]>(() => api.categories.list(), [])
   const { data: groups } = useApiData<SharedGroup[]>(() => api.groups.list(), [])
   const { data: members } = useApiData<Member[]>(() => api.members.list(), [])
@@ -90,7 +90,11 @@ const QuickAddWidget = ({ onRemove, onDataChanged }: WidgetComponentProps) => {
             className="flex-1 px-2 py-2 rounded-xl text-xs border outline-none app-text"
             style={{ borderColor: 'var(--border)', background: 'var(--surface-overlay)' }}>
             <option value="">Счёт</option>
-            {(accs ?? []).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            {(accs ?? []).map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.is_hidden ? '🔒 ' : ''}{a.name}
+              </option>
+            ))}
           </select>
         </div>
 

@@ -6,6 +6,7 @@ export interface Account {
   initial_balance: number
   member_id: number
   is_archived: boolean
+  is_hidden: boolean
   created_at: string
   updated_at: string
 }
@@ -20,8 +21,9 @@ export interface CreateAccountInput {
   currency: string
   initial_balance: number
   member_id: number
+  is_hidden?: boolean
 }
 
-export interface UpdateAccountInput extends CreateAccountInput {
+export interface UpdateAccountInput extends Omit<CreateAccountInput, 'is_hidden'> {
   is_archived: boolean
 }

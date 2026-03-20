@@ -9,6 +9,7 @@ const DEFAULT_WIDGETS: WidgetInstance[] = [
   { id: 'w-accounts', type: 'accounts' },
   { id: 'w-month', type: 'month-summary' },
   { id: 'w-pending', type: 'pending' },
+  { id: 'w-forecast', type: 'forecast' },
   { id: 'w-battle', type: 'battle' },
   { id: 'w-pie', type: 'pie-chart' },
   { id: 'w-income-expense', type: 'income-expense' },
