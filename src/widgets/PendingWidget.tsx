@@ -24,7 +24,7 @@ const PendingWidget = ({ data, onRemove, onDataChanged }: WidgetComponentProps) 
   const [execAccountId, setExecAccountId] = useState('')
   const [execAmount, setExecAmount] = useState('')
 
-  const { data: accounts } = useApiData<Account[]>(() => api.accounts.listAll(), [])
+  const { data: accounts } = useApiData<Account[]>(() => api.accounts.list(), [])
   const { data: plans } = useApiData<PlannedTransaction[]>(() => api.planned.list(true), [])
   const { run: executeReminder, loading: execLoading } = useMutation(
     (args: { id: number; accountId?: number; amount?: number }) =>
@@ -156,9 +156,7 @@ const PendingWidget = ({ data, onRemove, onDataChanged }: WidgetComponentProps) 
               onChange={(e) => setExecAccountId(e.target.value)}>
               <option value="">— Без счёта —</option>
               {(accounts ?? []).map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.is_hidden ? '🔒 ' : ''}{a.name}
-                </option>
+                <option key={a.id} value={a.id}>{a.name}</option>
               ))}
             </Select>
             <Button onClick={handleExecuteConfirm} loading={execLoading} className="w-full">
