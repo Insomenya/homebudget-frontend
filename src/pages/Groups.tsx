@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Users, Eye, Pencil, Trash2, UserCircle } from 'lucide-react'
 import { useApiData, useMutation } from '../hooks/useApi'
@@ -125,24 +125,30 @@ interface GroupModalProps {
 
 const GroupModal = ({ open, group, allMembers, onClose, onSaved }: GroupModalProps) => {
   const isNew = !group
-  const [form, setForm] = useState<GroupForm>(() =>
-    group
-      ? {
-          name: group.name, icon: group.icon,
-          members: group.members.map((m) => ({
-            member_id: String(m.member_id),
-            share_numerator: String(m.share_numerator),
-            share_denominator: String(m.share_denominator),
-          })),
-        }
-      : {
-          name: '', icon: '🏠',
-          members: [
-            { member_id: String(allMembers[0]?.id ?? ''), share_numerator: '1', share_denominator: '2' },
-            { member_id: String(allMembers[1]?.id ?? ''), share_numerator: '1', share_denominator: '2' },
-          ],
-        },
-  )
+  const createEmpty = (): GroupForm => ({
+    name: '', icon: '🏠',
+    members: [
+      { member_id: String(allMembers[0]?.id ?? ''), share_numerator: '1', share_denominator: '2' },
+      { member_id: String(allMembers[1]?.id ?? ''), share_numerator: '1', share_denominator: '2' },
+    ],
+  })
+  const [form, setForm] = useState<GroupForm>(createEmpty())
+  useEffect(() => {
+    if (!open) return
+    if (group) {
+      setForm({
+        name: group.name,
+        icon: group.icon,
+        members: group.members.map((m) => ({
+          member_id: String(m.member_id),
+          share_numerator: String(m.share_numerator),
+          share_denominator: String(m.share_denominator),
+        })),
+      })
+      return
+    }
+    setForm(createEmpty())
+  }, [open, group?.id, allMembers])
   const { run: save, loading, error } = useMutation(
     (d: CreateSharedGroupInput) =>
       isNew ? api.groups.create(d) : api.groups.update(group!.id, { ...d, is_archived: false }),

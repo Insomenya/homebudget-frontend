@@ -13,6 +13,8 @@ export interface Loan {
   loan_account_id: number | null
   category_id: number | null
   planned_id: number | null
+  accounting_start_date: string
+  initial_accrued_interest: number
   is_active: boolean
   created_at: string
   updated_at: string
@@ -28,6 +30,8 @@ export interface CreateLoanInput {
   account_id: number | null
   default_account_id: number | null
   category_id: number | null
+  accounting_start_date?: string
+  initial_accrued_interest?: number
   credit_to_account?: boolean
   create_planned?: boolean
 }

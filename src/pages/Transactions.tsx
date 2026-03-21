@@ -1,6 +1,6 @@
 // FILE: src/pages/Transactions.tsx
 import { useState, useCallback, type FormEvent } from 'react'
-import { Plus, Trash2, Search, Undo2 } from 'lucide-react'
+import { Plus, Trash2, Search, Undo2, Pencil, Play } from 'lucide-react'
 import { useApiData, useMutation } from '../hooks/useApi'
 import { useMeta } from '../hooks/useMeta'
 import api from '../api/client'
@@ -21,7 +21,7 @@ import { SortableTh, type SortState } from '../components/ui/SortableTable'
 import { fmtDate, fmtRub } from '../lib/format'
 import type {
   TransactionList, TxType, Account, Category,
-  SharedGroup, Member, CreateTransactionInput, Transaction,
+  SharedGroup, Member, CreateTransactionInput, Transaction, PlannedReminder, Loan, PlannedTransaction,
 } from '../types'
 
 const typeBadge: Record<TxType, 'danger' | 'success' | 'neutral'> = {
@@ -50,6 +50,7 @@ const AddTxModal = ({ open, onClose, onCreated }: {
   })
   const { data: accs } = useApiData<Account[]>(() => api.accounts.listAll(), [])
   const { data: cats } = useApiData<Category[]>(() => api.categories.list(), [])
+  const { data: plans } = useApiData<PlannedTransaction[]>(() => api.planned.list(true), [])
   const { data: groups } = useApiData<SharedGroup[]>(() => api.groups.list(), [])
   const { data: members } = useApiData<Member[]>(() => api.members.list(), [])
   const { run: create, loading, error } = useMutation(
@@ -149,15 +150,22 @@ const AddTxModal = ({ open, onClose, onCreated }: {
 const Transactions = () => {
   const { label } = useMeta()
   const { data: cats } = useApiData<Category[]>(() => api.categories.list(), [])
+  const { data: plans } = useApiData<PlannedTransaction[]>(() => api.planned.list(true), [])
+  const { data: groups } = useApiData<SharedGroup[]>(() => api.groups.list(), [])
+  const { data: members } = useApiData<Member[]>(() => api.members.list(), [])
+  const { data: loans } = useApiData<Loan[]>(() => api.loans.list(true), [])
+  const { data: reminders, reload: reloadReminders } = useApiData<PlannedReminder[]>(() => api.planned.reminders(), [])
   const [f, setF] = useState<Filters>({ page: 1, limit: 20, sort: 'date', dir: 'DESC', search: '', from: '', to: '', type: '' })
   const [showAdd, setShowAdd] = useState(false)
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null)
 
   const sortState: SortState = { col: f.sort, dir: f.dir.toLowerCase() as 'asc' | 'desc' }
   const fKey = JSON.stringify(f)
-  const fetcher = useCallback(() => api.transactions.list(f), [fKey])
+  const fetcher = useCallback(() => api.transactions.list(f as unknown as Record<string, string | number>), [fKey])
   const { data, loading, reload } = useApiData<TransactionList>(fetcher, [fKey])
   const { run: deleteTx } = useMutation((id: number) => api.transactions.delete(id))
   const { run: undoTx } = useMutation((id: number) => api.transactions.undo(id))
+  const { run: executeReminder } = useMutation((id: number) => api.planned.executeReminder(id, {}))
   const { run: updateTx } = useMutation(
     (args: { id: number; tx: Transaction; field: string; value: string }) => {
       const t = args.tx
@@ -165,7 +173,10 @@ const Transactions = () => {
         date: args.field === 'date' ? args.value : t.date,
         amount: args.field === 'amount' ? (parseFloat(args.value) || t.amount) : t.amount,
         description: args.field === 'description' ? args.value : t.description,
-        type: t.type, account_id: t.account_id, category_id: t.category_id,
+        type: args.field === 'type' ? args.value : t.type,
+        account_id: t.account_id,
+        to_account_id: t.to_account_id,
+        category_id: args.field === 'category_id' ? (args.value ? parseInt(args.value) : null) : t.category_id,
         loan_id: t.loan_id, shared_group_id: t.shared_group_id, paid_by_member_id: t.paid_by_member_id,
         reminder_id: t.reminder_id,
       })
@@ -179,11 +190,25 @@ const Transactions = () => {
   }
   const handleSort = (col: string) => setF((p) => ({ ...p, sort: col, dir: p.sort === col && p.dir === 'DESC' ? 'ASC' : 'DESC', page: 1 }))
   const handleInline = async (tx: Transaction, field: string, value: string) => { await updateTx({ id: tx.id, tx, field, value }); reload() }
+  const handleExecuteReminder = async (id: number) => {
+    await executeReminder(id)
+    reload()
+    reloadReminders()
+  }
 
   const catName = (id: number | null) => {
     if (!id || !cats) return '—'
     const c = cats.find((x) => x.id === id)
     return c ? `${c.icon} ${c.name}` : '—'
+  }
+  const memberName = (id: number | null) => {
+    if (!id || !members) return ''
+    const m = members.find((x) => x.id === id)
+    return m ? `${m.icon} ${m.name}` : ''
+  }
+  const loanName = (id: number | null) => {
+    if (!id || !loans) return ''
+    return loans.find((x) => x.id === id)?.name ?? ''
   }
 
   const items = data?.items ?? []
@@ -216,6 +241,47 @@ const Transactions = () => {
           </div>
         </CardBody>
       </Card>
+      {(reminders ?? []).filter((r) => !r.is_executed).length > 0 && (
+        <Card className="mb-4">
+          <CardBody>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold app-text-secondary">Напоминания к проводке</h3>
+              <span className="text-xs app-text-muted">{(reminders ?? []).filter((r) => !r.is_executed).length}</span>
+            </div>
+            <div className="space-y-2">
+              {(reminders ?? []).filter((r) => !r.is_executed).slice(0, 5).map((r) => (
+                <div key={r.id} className="flex items-center justify-between px-3 py-2 rounded-lg"
+                  style={{ background: 'color-mix(in srgb, var(--warning) 8%, transparent)' }}>
+                  {(() => {
+                    const plan = plans?.find((p) => p.id === r.planned_id)
+                    return (
+                      <div className="text-sm min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-medium shrink-0">{fmtDate(r.due_date)}</span>
+                          <span className="truncate">{plan?.name ?? `#${r.planned_id}`}</span>
+                          {plan?.type && <Badge variant={typeBadge[plan.type as TxType]}>{label('transaction_types', plan.type)}</Badge>}
+                        </div>
+                        <div className="text-xs app-text-muted mt-0.5">
+                          {plan?.category_id ? catName(plan.category_id) : 'Без категории'}
+                          {plan?.loan_id && ` · Кредит: ${loanName(plan.loan_id)}`}
+                          {plan?.paid_by_member_id && ` · Участник: ${memberName(plan.paid_by_member_id)}`}
+                          {' · '}
+                          {fmtRub(r.amount)}
+                        </div>
+                      </div>
+                    )
+                  })()}
+                  <div className="ml-3 shrink-0">
+                    <Button size="sm" onClick={() => handleExecuteReminder(r.id)}>
+                      <Play size={14} /> Провести
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
+      )}
 
       <Card>
         {loading ? <div className="flex justify-center py-12"><Spinner /></div> : items.length === 0 ? (
@@ -246,10 +312,40 @@ const Transactions = () => {
                       onSave={(v) => handleInline(tx, 'amount', v)}
                       className={`tabular-nums ${tx.type === 'income' ? 'app-positive' : tx.type === 'expense' ? 'app-negative' : ''}`} />
                   </Td>
-                  <Td><Badge variant={typeBadge[tx.type]}>{label('transaction_types', tx.type)}</Badge></Td>
-                  <Td className="text-sm">{catName(tx.category_id)}</Td>
+                  <Td>
+                    <select
+                      value={tx.type}
+                      onChange={(e) => handleInline(tx, 'type', e.target.value)}
+                      className="px-2 py-1 rounded-lg text-xs border outline-none app-text"
+                      style={{ borderColor: 'var(--border)', background: 'var(--surface-overlay)' }}
+                    >
+                      <option value="expense">{label('transaction_types', 'expense')}</option>
+                      <option value="income">{label('transaction_types', 'income')}</option>
+                      <option value="transfer">{label('transaction_types', 'transfer')}</option>
+                    </select>
+                  </Td>
+                  <Td className="text-sm">
+                    {tx.type !== 'transfer' ? (
+                      <select
+                        value={tx.category_id ?? ''}
+                        onChange={(e) => handleInline(tx, 'category_id', e.target.value)}
+                        className="px-2 py-1 rounded-lg text-xs border outline-none app-text"
+                        style={{ borderColor: 'var(--border)', background: 'var(--surface-overlay)' }}
+                      >
+                        <option value="">—</option>
+                        {(cats ?? []).filter((c) => c.type === tx.type).map((c) => (
+                          <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                        ))}
+                      </select>
+                    ) : catName(tx.category_id)}
+                    {tx.loan_id && <span className="ml-2 text-[11px] app-text-muted">Кредит: {loanName(tx.loan_id)}</span>}
+                    {tx.paid_by_member_id && <span className="ml-2 text-[11px] app-text-muted">Участник: {memberName(tx.paid_by_member_id)}</span>}
+                  </Td>
                   <Td>
                     <div className="flex gap-0.5 justify-end">
+                      <button onClick={() => setEditingTx(tx)} className="p-1.5 rounded-lg transition-colors cursor-pointer" style={{ color: 'var(--text-muted)' }} title="Редактировать">
+                        <Pencil size={14} />
+                      </button>
                       {tx.reminder_id && (
                         <button onClick={() => handleUndo(tx.id)}
                           className="p-1.5 rounded-lg transition-colors cursor-pointer"
@@ -271,6 +367,55 @@ const Transactions = () => {
       </Card>
 
       <AddTxModal open={showAdd} onClose={() => setShowAdd(false)} onCreated={() => { setShowAdd(false); reload() }} />
+      <Modal open={!!editingTx} onClose={() => setEditingTx(null)} title="Редактировать операцию">
+        {editingTx && (
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={async (e) => {
+              e.preventDefault()
+              await api.transactions.update(editingTx.id, {
+                date: editingTx.date,
+                amount: editingTx.amount,
+                description: editingTx.description,
+                type: editingTx.type,
+                account_id: editingTx.account_id,
+                to_account_id: editingTx.to_account_id,
+                category_id: editingTx.category_id,
+                loan_id: editingTx.loan_id,
+                shared_group_id: editingTx.shared_group_id,
+                paid_by_member_id: editingTx.paid_by_member_id,
+                reminder_id: editingTx.reminder_id,
+              })
+              setEditingTx(null)
+              reload()
+            }}
+          >
+            <DatePicker label="Дата" value={editingTx.date} onChange={(v) => setEditingTx({ ...editingTx, date: v })} />
+            <Input label="Описание" value={editingTx.description} onChange={(e) => setEditingTx({ ...editingTx, description: e.target.value })} />
+            <Input label="Сумма" type="number" step="0.01" value={String(editingTx.amount)} onChange={(e) => setEditingTx({ ...editingTx, amount: parseFloat(e.target.value) || 0 })} />
+            <Select label="Тип" value={editingTx.type} onChange={(e) => setEditingTx({ ...editingTx, type: e.target.value as TxType })}>
+              <option value="expense">{label('transaction_types', 'expense')}</option>
+              <option value="income">{label('transaction_types', 'income')}</option>
+              <option value="transfer">{label('transaction_types', 'transfer')}</option>
+            </Select>
+            <Select label="Категория" value={editingTx.category_id ?? ''} onChange={(e) => setEditingTx({ ...editingTx, category_id: e.target.value ? parseInt(e.target.value) : null })}>
+              <option value="">—</option>
+              {(cats ?? []).filter((c) => c.type === editingTx.type).map((c) => (
+                <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+              ))}
+            </Select>
+            <Select label="Группа деления" value={editingTx.shared_group_id ?? ''} onChange={(e) => setEditingTx({ ...editingTx, shared_group_id: e.target.value ? parseInt(e.target.value) : null })}>
+              <option value="">—</option>
+              {(groups ?? []).map((g) => <option key={g.id} value={g.id}>{g.icon} {g.name}</option>)}
+            </Select>
+            <Select label="Участник" value={editingTx.paid_by_member_id ?? ''} onChange={(e) => setEditingTx({ ...editingTx, paid_by_member_id: e.target.value ? parseInt(e.target.value) : null })}>
+              <option value="">—</option>
+              {(members ?? []).map((m) => <option key={m.id} value={m.id}>{m.icon} {m.name}</option>)}
+            </Select>
+            <Button type="submit" className="self-end">Сохранить</Button>
+          </form>
+        )}
+      </Modal>
     </>
   )
 }

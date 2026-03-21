@@ -6,6 +6,7 @@ interface PeriodSelectorProps {
   value: PeriodPreset
   onChange: (preset: PeriodPreset) => void
   className?: string
+  includeAll?: boolean
 }
 
 const PRESETS: { key: PeriodPreset; label: string }[] = [
@@ -19,7 +20,7 @@ const PRESETS: { key: PeriodPreset; label: string }[] = [
 export const usePeriodDates = (preset: PeriodPreset) => {
   return useMemo(() => {
     const now = new Date()
-    const to = now.toISOString().split('T')[0]
+    const to = toLocalYmd(now)
     let fromDate: Date
 
     switch (preset) {
@@ -42,13 +43,20 @@ export const usePeriodDates = (preset: PeriodPreset) => {
         return { from: '', to }
     }
 
-    return { from: fromDate.toISOString().split('T')[0], to }
+    return { from: toLocalYmd(fromDate), to }
   }, [preset])
 }
 
-const PeriodSelector = ({ value, onChange, className }: PeriodSelectorProps) => (
+const toLocalYmd = (d: Date) => {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+const PeriodSelector = ({ value, onChange, className, includeAll = true }: PeriodSelectorProps) => (
   <div className={`flex gap-0.5 ${className ?? ''}`}>
-    {PRESETS.map((p) => (
+    {PRESETS.filter((p) => includeAll || p.key !== 'all').map((p) => (
       <button
         key={p.key}
         onClick={() => onChange(p.key)}

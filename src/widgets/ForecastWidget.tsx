@@ -69,7 +69,7 @@ const ForecastWidget = ({ data, onRemove }: WidgetComponentProps) => {
   return (
     <WidgetShell title="Прогноз балансов" icon="🔮" onRemove={onRemove}>
       <div className="flex justify-end mb-3">
-        <PeriodSelector value={period} onChange={setPeriod} />
+        <PeriodSelector value={period} onChange={setPeriod} includeAll={false} />
       </div>
 
       {/* Summary */}

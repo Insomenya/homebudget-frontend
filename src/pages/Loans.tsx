@@ -1,6 +1,6 @@
 // FILE: src/pages/Loans.tsx
 import { useState, useMemo, useCallback } from 'react'
-import { Plus, Trash2, ArrowLeft, DollarSign } from 'lucide-react'
+import { Plus, Trash2, ArrowLeft, ChevronDown, ChevronRight } from 'lucide-react'
 import { useApiData, useMutation } from '../hooks/useApi'
 import api from '../api/client'
 import PageHeader from '../components/PageHeader'
@@ -14,13 +14,20 @@ import LoanModal from './loans/LoanModal'
 import PaymentModal from './loans/PaymentModal'
 import LoanChart from './loans/LoanChart'
 import LoanSchedule from './loans/LoanSchedule'
-import type { Loan, LoanDailySchedule } from '../types'
+import type { Loan, LoanDailySchedule, PlannedTransaction } from '../types'
 
 type PeriodPreset = 'month' | '3months' | 'year' | 'all' | 'custom'
 
+const toLocalYmd = (d: Date) => {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 const getPresetDates = (preset: PeriodPreset, loan: Loan): { from: string; to: string } => {
   const now = new Date()
-  const toStr = (d: Date) => d.toISOString().split('T')[0]
+  const toStr = (d: Date) => toLocalYmd(d)
 
   switch (preset) {
     case 'month': {
@@ -61,6 +68,7 @@ const Loans = () => {
   const [period, setPeriod] = useState<PeriodPreset>('month')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
+  const [showChart, setShowChart] = useState(true)
   const { run: remove } = useMutation((id: number) => api.loans.delete(id))
 
   const selectedLoan = useMemo(() => loans?.find((l) => l.id === selectedId) ?? null, [loans, selectedId])
@@ -82,6 +90,25 @@ const Loans = () => {
   )
   const { data: schedule, loading: schedLoading, reload: reloadSchedule } =
     useApiData<LoanDailySchedule | null>(schedFetcher, [selectedId, schedFrom, schedTo])
+  const plannedFetcher = useCallback(
+    () => selectedLoan?.planned_id ? api.planned.get(selectedLoan.planned_id) : Promise.resolve(null),
+    [selectedLoan?.planned_id],
+  )
+  const { data: loanPlanned } = useApiData<PlannedTransaction | null>(plannedFetcher, [selectedLoan?.planned_id ?? 0])
+  const nextDueScheduleFetcher = useCallback(
+    () => selectedLoan && loanPlanned?.next_due
+      ? api.loans.schedule(selectedLoan.id, selectedLoan.start_date, loanPlanned.next_due)
+      : Promise.resolve(null),
+    [selectedLoan?.id, selectedLoan?.start_date, loanPlanned?.next_due],
+  )
+  const { data: nextDueSchedule } = useApiData<LoanDailySchedule | null>(nextDueScheduleFetcher, [
+    selectedLoan?.id ?? 0, loanPlanned?.next_due ?? '',
+  ])
+  const nextDueMonthKey = loanPlanned?.next_due?.slice(0, 7) ?? ''
+  const nextDueMonth = nextDueSchedule?.months.find((m) => m.month === nextDueMonthKey)
+  const currentMonthRemainingInterest = nextDueMonth && nextDueMonth.days.length > 0
+    ? nextDueMonth.days[nextDueMonth.days.length - 1].accrued_interest
+    : 0
 
   const handleDelete = async (id: number) => {
     if (!confirm('Удалить кредит?')) return
@@ -109,7 +136,7 @@ const Loans = () => {
                 <ArrowLeft size={14} /> Все кредиты
               </Button>
               <Button size="sm" onClick={() => setShowPayment(true)}>
-                <DollarSign size={14} /> Внести платёж
+                Внести платёж
               </Button>
               <Button variant="danger" size="sm" onClick={() => handleDelete(selectedLoan.id)}>
                 <Trash2 size={14} />
@@ -147,7 +174,7 @@ const Loans = () => {
         ) : schedule ? (
           <div className="space-y-4">
             {/* Summary cards */}
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-5 gap-3">
               <Card>
                 <CardBody className="py-3">
                   <p className="text-[10px] uppercase tracking-wider app-text-muted">Платёж/мес</p>
@@ -172,14 +199,28 @@ const Loans = () => {
                   <p className="text-lg font-bold tabular-nums app-warning">{fmtRub(schedule.total_interest)}</p>
                 </CardBody>
               </Card>
+              <Card>
+                <CardBody className="py-3">
+                  <p className="text-[10px] uppercase tracking-wider app-text-muted">Ост. % к платежу</p>
+                  <p className="text-lg font-bold tabular-nums app-warning">{fmtRub(currentMonthRemainingInterest)}</p>
+                </CardBody>
+              </Card>
             </div>
 
             {/* Chart */}
             {schedule.months.length >= 2 && (
               <Card>
                 <CardBody>
-                  <h3 className="text-sm font-semibold app-text-secondary mb-2">Динамика кредита</h3>
-                  <LoanChart months={schedule.months} monthlyPayment={selectedLoan.monthly_payment} />
+                  <button
+                    className="w-full flex items-center justify-between text-sm font-semibold app-text-secondary mb-2 cursor-pointer"
+                    onClick={() => setShowChart((v) => !v)}
+                  >
+                    <span>Динамика кредита</span>
+                    {showChart ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  </button>
+                  {showChart && (
+                    <LoanChart months={schedule.months} monthlyPayment={selectedLoan.monthly_payment} />
+                  )}
                 </CardBody>
               </Card>
             )}

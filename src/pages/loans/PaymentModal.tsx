@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { useMutation } from '../../hooks/useApi'
 import api from '../../api/client'
 import Modal from '../../components/ui/Modal'
@@ -20,6 +20,14 @@ const PaymentModal = ({ open, loan, onClose, onSaved }: Props) => {
     amount: '',
     description: '',
   })
+  useEffect(() => {
+    if (!open) return
+    setForm({
+      date: new Date().toISOString().split('T')[0],
+      amount: loan ? String(loan.monthly_payment) : '',
+      description: loan ? `Платёж: ${loan.name}` : '',
+    })
+  }, [open, loan?.id])
   const { run: create, loading, error } = useMutation(
     (d: CreateTransactionInput) => api.transactions.create(d),
   )

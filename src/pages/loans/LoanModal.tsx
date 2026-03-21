@@ -13,6 +13,7 @@ interface LoanForm {
   name: string; principal: string; annual_rate: string
   start_date: string; end_date: string; already_paid: string
   account_id: string; default_account_id: string; category_id: string
+  accounting_start_date: string; ignore_old_interest: boolean; initial_accrued_interest: string
   credit_to_account: boolean; create_planned: boolean
 }
 
@@ -28,6 +29,7 @@ const LoanModal = ({ open, onClose, onSaved }: Props) => {
     start_date: new Date().toISOString().split('T')[0],
     end_date: '', already_paid: '0',
     account_id: '', default_account_id: '', category_id: '',
+    accounting_start_date: new Date().toISOString().split('T')[0], ignore_old_interest: true, initial_accrued_interest: '0',
     credit_to_account: false, create_planned: false,
   })
   const { data: accs } = useApiData<Account[]>(() => api.accounts.list(), [])
@@ -48,6 +50,8 @@ const LoanModal = ({ open, onClose, onSaved }: Props) => {
       account_id: form.credit_to_account && form.account_id ? parseInt(form.account_id) : null,
       default_account_id: form.default_account_id ? parseInt(form.default_account_id) : null,
       category_id: form.category_id ? parseInt(form.category_id) : null,
+      accounting_start_date: form.ignore_old_interest ? form.accounting_start_date : form.start_date,
+      initial_accrued_interest: parseFloat(form.initial_accrued_interest) || 0,
       credit_to_account: form.credit_to_account,
       create_planned: form.create_planned,
     })
@@ -95,6 +99,21 @@ const LoanModal = ({ open, onClose, onSaved }: Props) => {
             {(cats ?? []).filter((c) => c.type === 'expense').map((c) =>
               <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
           </Select>
+        </div>
+        <div className="border rounded-xl p-3" style={{ borderColor: 'var(--border-subtle)' }}>
+          <label className="flex items-center gap-2 cursor-pointer mb-3">
+            <input type="checkbox" checked={form.ignore_old_interest}
+              onChange={(e) => setForm({ ...form, ignore_old_interest: e.target.checked })} className="w-4 h-4 rounded" />
+            <span className="text-sm app-text-secondary">Не учитывать старые проценты до начала учета</span>
+          </label>
+          {form.ignore_old_interest && (
+            <div className="grid grid-cols-2 gap-4">
+              <DatePicker label="Дата начала учета" value={form.accounting_start_date}
+                onChange={(v) => setForm({ ...form, accounting_start_date: v })} />
+              <Input label="Начисленные % на дату учета" type="number" step="0.01" value={form.initial_accrued_interest}
+                onChange={(e) => setForm({ ...form, initial_accrued_interest: e.target.value })} />
+            </div>
+          )}
         </div>
         <Select label="Счёт по умолчанию (для платежей)" value={form.default_account_id}
           onChange={(e) => setForm({ ...form, default_account_id: e.target.value })}>

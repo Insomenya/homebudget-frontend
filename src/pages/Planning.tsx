@@ -1,4 +1,4 @@
-import { useState, useMemo, type FormEvent } from 'react'
+import { useState, useMemo, useEffect, type FormEvent } from 'react'
 import { Plus, Pencil, CalendarClock, Trash2, Play, Power } from 'lucide-react'
 import { useApiData, useMutation } from '../hooks/useApi'
 import { useMeta } from '../hooks/useMeta'
@@ -24,25 +24,30 @@ import { fmtDate, fmtRub } from '../lib/format'
 const PlanModal = ({ open, plan, onClose, onSaved }: PlanModalProps) => {
   const { meta } = useMeta()
   const isNew = !plan
-  const [form, setForm] = useState<PlanForm>(() =>
-    plan
-      ? {
-          name: plan.name, amount: String(plan.amount), type: plan.type,
-          recurrence: plan.recurrence, start_date: plan.start_date,
-          end_date: plan.end_date ?? '',
-          category_id: plan.category_id ? String(plan.category_id) : '',
-          shared_group_id: plan.shared_group_id ? String(plan.shared_group_id) : '',
-          paid_by_member_id: plan.paid_by_member_id ? String(plan.paid_by_member_id) : '',
-          notify_days_before: String(plan.notify_days_before),
-          overdue_days_limit: String(plan.overdue_days_limit),
-        }
-      : {
-          name: '', amount: '', type: 'expense', recurrence: 'monthly',
-          start_date: new Date().toISOString().split('T')[0], end_date: '',
-          category_id: '', shared_group_id: '',
-          paid_by_member_id: '', notify_days_before: '3', overdue_days_limit: '30',
-        },
-  )
+  const emptyForm: PlanForm = {
+    name: '', amount: '', type: 'expense', recurrence: 'monthly',
+    start_date: new Date().toISOString().split('T')[0], end_date: '',
+    category_id: '', shared_group_id: '',
+    paid_by_member_id: '', notify_days_before: '3', overdue_days_limit: '30',
+  }
+  const [form, setForm] = useState<PlanForm>(emptyForm)
+  useEffect(() => {
+    if (!open) return
+    if (plan) {
+      setForm({
+        name: plan.name, amount: String(plan.amount), type: plan.type,
+        recurrence: plan.recurrence, start_date: plan.start_date,
+        end_date: plan.end_date ?? '',
+        category_id: plan.category_id ? String(plan.category_id) : '',
+        shared_group_id: plan.shared_group_id ? String(plan.shared_group_id) : '',
+        paid_by_member_id: plan.paid_by_member_id ? String(plan.paid_by_member_id) : '',
+        notify_days_before: String(plan.notify_days_before),
+        overdue_days_limit: String(plan.overdue_days_limit),
+      })
+      return
+    }
+    setForm(emptyForm)
+  }, [open, plan?.id])
 
   const { data: cats } = useApiData<Category[]>(() => api.categories.list(), [])
   const { data: groups } = useApiData<SharedGroup[]>(() => api.groups.list(), [])
@@ -130,9 +135,37 @@ const Planning = () => {
   const [limit, setLimit] = useState(20)
   const { run: remove } = useMutation((id: number) => api.planned.delete(id))
   const { run: activate } = useMutation((id: number) => api.planned.activate(id))
+  const { run: createTx } = useMutation((d: CreatePlannedInput) => api.transactions.create({
+    date: new Date().toISOString().split('T')[0],
+    amount: d.amount,
+    description: d.name,
+    type: d.type,
+    category_id: d.category_id,
+    shared_group_id: d.shared_group_id,
+    paid_by_member_id: d.paid_by_member_id,
+    loan_id: d.loan_id,
+    account_id: null,
+  }))
 
   const handleDelete = async (id: number) => { if (!confirm('Удалить?')) return; await remove(id); reload() }
   const handleActivate = async (id: number) => { await activate(id); reload() }
+  const handleExecuteNow = async (p: PlannedTransaction) => {
+    await createTx({
+      name: p.name,
+      amount: p.amount,
+      type: p.type,
+      category_id: p.category_id,
+      shared_group_id: p.shared_group_id,
+      paid_by_member_id: p.paid_by_member_id,
+      loan_id: p.loan_id,
+      recurrence: p.recurrence,
+      start_date: p.start_date,
+      end_date: p.end_date,
+      notify_days_before: p.notify_days_before,
+      overdue_days_limit: p.overdue_days_limit,
+    })
+    reload()
+  }
 
   const sorted = useMemo(() => {
     if (!plans) return []
@@ -203,6 +236,11 @@ const Planning = () => {
                         <Power size={14} />
                       </button>
                     )}
+                    <button onClick={() => handleExecuteNow(p)}
+                      className="p-1.5 rounded-lg transition-colors cursor-pointer"
+                      style={{ color: 'var(--positive)' }} title="Провести сейчас">
+                      <Play size={14} />
+                    </button>
                     <button onClick={() => setEditing(p)} className="p-1.5 rounded-lg transition-colors cursor-pointer" style={{ color: 'var(--text-muted)' }}><Pencil size={14} /></button>
                     <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded-lg transition-colors cursor-pointer" style={{ color: 'var(--text-muted)' }}><Trash2 size={14} /></button>
                   </div>
