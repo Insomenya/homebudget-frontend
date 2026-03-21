@@ -1,3 +1,4 @@
+// FILE: src/types/pages.ts
 import type { Category, Member, PlannedTransaction } from '.'
 
 // ── Transactions ────────────────────────────────────
@@ -99,21 +100,6 @@ export interface PlanModalProps {
   plan: PlannedTransaction | null
   onClose: () => void
   onSaved: () => void
-}
-
-// ── LoanCalc ────────────────────────────────────────
-export interface LoanForm {
-  principal: string
-  annual_rate: string
-  start_date: string
-  end_date: string
-  extra_payment: string
-}
-
-export interface StatCardProps {
-  label: string
-  value: string
-  accent?: boolean
 }
 
 // ── Dashboard ───────────────────────────────────────

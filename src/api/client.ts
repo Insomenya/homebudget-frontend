@@ -1,3 +1,4 @@
+// FILE: src/api/client.ts
 import type {
   Member, CreateMemberInput, UpdateMemberInput,
   Account, CreateAccountInput, UpdateAccountInput,
@@ -8,7 +9,6 @@ import type {
   ExecuteReminderInput, PlannedForecastItem,
   Settlement, Turnover,
   CategoryBreakdown, TrendData,
-  LoanCalcInput, LoanCalcResult,
   Dashboard, AnalyticsFilter,
   Meta, LookupValue, CreateLookupInput, UpdateLookupInput,
   Loan, CreateLoanInput, UpdateLoanInput, LoanDailySchedule,
@@ -157,11 +157,6 @@ const api = {
       request<CategoryBreakdown>('GET', `/analytics/categories${qs(params as QsParams)}`),
     trends: (params: AnalyticsFilter = {}) =>
       request<TrendData>('GET', `/analytics/trends${qs(params as QsParams)}`),
-  },
-
-  tools: {
-    loanCalc: (d: LoanCalcInput) =>
-      request<LoanCalcResult>('POST', '/tools/loan-calc', d),
   },
 }
 

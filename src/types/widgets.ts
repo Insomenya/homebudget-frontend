@@ -1,3 +1,4 @@
+// FILE: src/types/widgets.ts
 import type { Dashboard } from '.'
 
 export interface WidgetComponentProps {
@@ -25,25 +26,7 @@ export interface AddWidgetMenuProps {
   onAdd: (type: string) => void
 }
 
-// ── Battle / Fluid ──────────────────────────────────
-
-export interface FluidParticle {
-  x: number
-  y: number
-  vx: number
-  vy: number
-  r: number
-  side: 0 | 1
-}
-
-export interface FluidConfig {
-  particleCount: number
-  gravity: number
-  damping: number
-  bounce: number
-  repulsion: number
-  separationForce: number
-}
+// ── Battle ──────────────────────────────────────────
 
 export interface BattleMember {
   name: string
@@ -63,15 +46,4 @@ export interface BattleWidgetData {
     to: string
     amount: number
   }>
-}
-
-// ── Forecast ────────────────────────────────────────
-
-export interface ForecastToggleItem {
-  planned_id: number
-  name: string
-  amount: number
-  type: string
-  due_date: string
-  enabled: boolean
 }

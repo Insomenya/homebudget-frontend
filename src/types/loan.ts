@@ -1,3 +1,4 @@
+// FILE: src/types/loan.ts
 export interface Loan {
   id: number
   name: string
@@ -61,33 +62,4 @@ export interface LoanDailySchedule {
   total_paid: number
   total_interest: number
   months: LoanMonthGroup[]
-}
-
-export interface LoanCalcInput {
-  principal: number
-  annual_rate: number
-  start_date: string
-  end_date: string
-  extra_payment: number
-}
-
-export interface LoanPayment {
-  month: number
-  date: string
-  payment: number
-  principal: number
-  interest: number
-  extra: number
-  remaining: number
-  cumulative_paid: number
-  cumulative_interest: number
-}
-
-export interface LoanCalcResult {
-  monthly_payment: number
-  total_paid: number
-  total_interest: number
-  overpayment_ratio: number
-  effective_months: number
-  schedule: LoanPayment[]
 }

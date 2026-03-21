@@ -1,5 +1,6 @@
+// FILE: src/widgets/PendingWidget.tsx
 import { useState } from 'react'
-import { Play, Undo2, Trash2 } from 'lucide-react'
+import { Play, Undo2 } from 'lucide-react'
 import { useApiData, useMutation } from '../hooks/useApi'
 import api from '../api/client'
 import type { WidgetComponentProps } from '../types/widgets'
@@ -18,6 +19,7 @@ interface ExecuteModalState {
 
 const PendingWidget = ({ data, onRemove, onDataChanged }: WidgetComponentProps) => {
   const reminders = data?.reminders ?? []
+  const upcoming = data?.upcoming ?? []
   const [execModal, setExecModal] = useState<ExecuteModalState | null>(null)
   const [execAccountId, setExecAccountId] = useState('')
   const [execAmount, setExecAmount] = useState('')
@@ -61,16 +63,23 @@ const PendingWidget = ({ data, onRemove, onDataChanged }: WidgetComponentProps) 
   const activeReminders = reminders.filter((r) => !r.is_executed)
   const executedReminders = reminders.filter((r) => r.is_executed)
 
+  // Filter upcoming to exclude those that already have active reminders
+  const reminderPlannedIds = new Set(activeReminders.map((r) => r.planned_id))
+  const filteredUpcoming = upcoming.filter((p) => !reminderPlannedIds.has(p.id))
+
+  const hasContent = activeReminders.length > 0 || executedReminders.length > 0 || filteredUpcoming.length > 0
+
   return (
     <WidgetShell title="Напоминания" icon="🔔" onRemove={onRemove}>
-      {activeReminders.length === 0 && executedReminders.length === 0 ? (
-        <p className="text-sm app-text-muted text-center py-4">Нет напоминаний ✅</p>
+      {!hasContent ? (
+        <p className="text-sm app-text-muted text-center py-4">Нет напоминаний и предстоящих ✅</p>
       ) : (
         <div className="space-y-1.5">
+          {/* Active reminders (need action) */}
           {activeReminders.map((rem) => {
             const plan = getPlan(rem.planned_id)
             return (
-              <div key={rem.id} className="flex items-center justify-between text-sm px-2 py-2 rounded-lg"
+              <div key={`rem-${rem.id}`} className="flex items-center justify-between text-sm px-2 py-2 rounded-lg"
                 style={{ background: 'color-mix(in srgb, var(--warning) 8%, transparent)' }}>
                 <div className="min-w-0 flex items-center gap-2">
                   <span className="text-[10px] app-text-muted shrink-0">{formatDate(rem.due_date)}</span>
@@ -90,10 +99,28 @@ const PendingWidget = ({ data, onRemove, onDataChanged }: WidgetComponentProps) 
             )
           })}
 
+          {/* Upcoming planned (no reminder yet) */}
+          {filteredUpcoming.slice(0, 5).map((p) => (
+            <div key={`up-${p.id}`} className="flex items-center justify-between text-sm px-2 py-1.5 rounded-lg"
+              style={{ background: 'var(--surface-overlay)' }}>
+              <div className="min-w-0 flex items-center gap-2">
+                <span className="text-[10px] app-text-muted shrink-0">{formatDate(p.next_due)}</span>
+                <span className="truncate">{p.name}</span>
+                <span className="text-[9px] app-text-muted">📅</span>
+              </div>
+              <span className={`text-sm font-bold tabular-nums shrink-0 ml-2 ${
+                p.type === 'income' ? 'app-positive' : 'app-negative'
+              }`}>
+                {formatRub(p.amount)}
+              </span>
+            </div>
+          ))}
+
+          {/* Recently executed */}
           {executedReminders.slice(0, 3).map((rem) => {
             const plan = getPlan(rem.planned_id)
             return (
-              <div key={rem.id} className="flex items-center justify-between text-sm px-2 py-1.5 rounded-lg"
+              <div key={`exec-${rem.id}`} className="flex items-center justify-between text-sm px-2 py-1.5 rounded-lg"
                 style={{ background: 'color-mix(in srgb, var(--positive) 6%, transparent)' }}>
                 <div className="min-w-0 flex items-center gap-2">
                   <span className="text-[10px] app-text-muted shrink-0">{formatDate(rem.due_date)}</span>

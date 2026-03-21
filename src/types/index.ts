@@ -1,3 +1,4 @@
+// FILE: src/types/index.ts
 export type { Member, CreateMemberInput, UpdateMemberInput } from './member'
 export type { Account, AccountBalance, CreateAccountInput, UpdateAccountInput } from './account'
 export type { Category, CreateCategoryInput, UpdateCategoryInput } from './category'
@@ -19,7 +20,6 @@ export type { CategorySlice, CategoryBreakdown, TrendPoint, TrendData, Analytics
 export type {
   Loan, CreateLoanInput, UpdateLoanInput,
   LoanDayRow, LoanMonthGroup, LoanDailySchedule,
-  LoanCalcInput, LoanPayment, LoanCalcResult,
 } from './loan'
 export type { CategoryTotal, PeriodSummary, Dashboard } from './dashboard'
 export type { LookupValue, CreateLookupInput, UpdateLookupInput, Meta } from './meta'

@@ -1,3 +1,4 @@
+// FILE: src/stores/dashboard.ts
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { DashboardStore, WidgetInstance } from '../types/stores'

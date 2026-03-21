@@ -1,3 +1,4 @@
+// FILE: src/pages/Loans.tsx
 import { useState, useMemo, useCallback } from 'react'
 import { Plus, Trash2, ArrowLeft, DollarSign } from 'lucide-react'
 import { useApiData, useMutation } from '../hooks/useApi'
@@ -7,6 +8,7 @@ import Card, { CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Spinner from '../components/ui/Spinner'
 import EmptyState from '../components/ui/EmptyState'
+import DatePicker from '../components/ui/DatePicker'
 import { fmtDate, fmtRub } from '../lib/format'
 import LoanModal from './loans/LoanModal'
 import PaymentModal from './loans/PaymentModal'
@@ -14,20 +16,63 @@ import LoanChart from './loans/LoanChart'
 import LoanSchedule from './loans/LoanSchedule'
 import type { Loan, LoanDailySchedule } from '../types'
 
+type PeriodPreset = 'month' | '3months' | 'year' | 'all' | 'custom'
+
+const getPresetDates = (preset: PeriodPreset, loan: Loan): { from: string; to: string } => {
+  const now = new Date()
+  const toStr = (d: Date) => d.toISOString().split('T')[0]
+
+  switch (preset) {
+    case 'month': {
+      const from = new Date(now.getFullYear(), now.getMonth(), 1)
+      const to = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      return { from: toStr(from), to: toStr(to) }
+    }
+    case '3months': {
+      const from = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const to = new Date(now.getFullYear(), now.getMonth() + 2, 0)
+      return { from: toStr(from), to: toStr(to) }
+    }
+    case 'year': {
+      const from = new Date(now.getFullYear(), 0, 1)
+      const to = new Date(now.getFullYear(), 11, 31)
+      return { from: toStr(from), to: toStr(to) }
+    }
+    case 'all':
+      return { from: loan.start_date, to: loan.end_date }
+    default:
+      return { from: '', to: '' }
+  }
+}
+
+const PRESETS: { key: PeriodPreset; label: string }[] = [
+  { key: 'month', label: 'Месяц' },
+  { key: '3months', label: '3 мес' },
+  { key: 'year', label: 'Год' },
+  { key: 'all', label: 'Всё' },
+  { key: 'custom', label: 'Период' },
+]
+
 const Loans = () => {
   const { data: loans, loading, reload } = useApiData<Loan[]>(() => api.loans.list(true), [])
   const [showAdd, setShowAdd] = useState(false)
   const [showPayment, setShowPayment] = useState(false)
   const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [period, setPeriod] = useState<PeriodPreset>('month')
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState('')
   const { run: remove } = useMutation((id: number) => api.loans.delete(id))
 
   const selectedLoan = useMemo(() => loans?.find((l) => l.id === selectedId) ?? null, [loans, selectedId])
 
-  const schedFrom = useMemo(() => {
-    if (!selectedLoan) return ''
-    return selectedLoan.created_at.split(' ')[0] || selectedLoan.start_date
-  }, [selectedLoan])
-  const schedTo = selectedLoan?.end_date ?? ''
+  const { schedFrom, schedTo } = useMemo(() => {
+    if (!selectedLoan) return { schedFrom: '', schedTo: '' }
+    if (period === 'custom') {
+      return { schedFrom: customFrom || selectedLoan.start_date, schedTo: customTo || selectedLoan.end_date }
+    }
+    const { from, to } = getPresetDates(period, selectedLoan)
+    return { schedFrom: from, schedTo: to }
+  }, [selectedLoan, period, customFrom, customTo])
 
   const schedFetcher = useCallback(
     () => selectedId && schedFrom && schedTo
@@ -36,7 +81,7 @@ const Loans = () => {
     [selectedId, schedFrom, schedTo],
   )
   const { data: schedule, loading: schedLoading, reload: reloadSchedule } =
-    useApiData<LoanDailySchedule | null>(schedFetcher, [selectedId, schedFrom])
+    useApiData<LoanDailySchedule | null>(schedFetcher, [selectedId, schedFrom, schedTo])
 
   const handleDelete = async (id: number) => {
     if (!confirm('Удалить кредит?')) return
@@ -73,6 +118,30 @@ const Loans = () => {
           }
         />
 
+        {/* Period selector */}
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          {PRESETS.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => setPeriod(p.key)}
+              className="px-3 py-1.5 text-xs rounded-lg transition-colors cursor-pointer font-medium"
+              style={{
+                background: period === p.key ? 'var(--accent)' : 'transparent',
+                color: period === p.key ? '#fff' : 'var(--text-muted)',
+              }}
+            >
+              {p.label}
+            </button>
+          ))}
+          {period === 'custom' && (
+            <div className="flex items-center gap-2">
+              <DatePicker value={customFrom} onChange={setCustomFrom} placeholder="С" className="w-36" />
+              <span className="app-text-muted">—</span>
+              <DatePicker value={customTo} onChange={setCustomTo} placeholder="По" className="w-36" />
+            </div>
+          )}
+        </div>
+
         {schedLoading ? (
           <div className="flex justify-center py-12"><Spinner /></div>
         ) : schedule ? (
@@ -106,12 +175,14 @@ const Loans = () => {
             </div>
 
             {/* Chart */}
-            <Card>
-              <CardBody>
-                <h3 className="text-sm font-semibold app-text-secondary mb-2">Динамика кредита</h3>
-                <LoanChart months={schedule.months} monthlyPayment={selectedLoan.monthly_payment} />
-              </CardBody>
-            </Card>
+            {schedule.months.length >= 2 && (
+              <Card>
+                <CardBody>
+                  <h3 className="text-sm font-semibold app-text-secondary mb-2">Динамика кредита</h3>
+                  <LoanChart months={schedule.months} monthlyPayment={selectedLoan.monthly_payment} />
+                </CardBody>
+              </Card>
+            )}
 
             {/* Schedule tables */}
             <Card>
@@ -151,7 +222,7 @@ const Loans = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {loans.map((l) => (
             <Card key={l.id} className="cursor-pointer hover:scale-[1.01] transition-transform"
-              onClick={() => setSelectedId(l.id)}>
+              onClick={() => { setSelectedId(l.id); setPeriod('month') }}>
               <CardBody>
                 <div className="flex items-start justify-between mb-2">
                   <div>

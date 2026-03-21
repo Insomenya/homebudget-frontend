@@ -1,3 +1,4 @@
+// FILE: src/pages/Transactions.tsx
 import { useState, useCallback, type FormEvent } from 'react'
 import { Plus, Trash2, Search, Undo2 } from 'lucide-react'
 import { useApiData, useMutation } from '../hooks/useApi'
@@ -19,7 +20,7 @@ import { Table, Td, Tr } from '../components/ui/Table'
 import { SortableTh, type SortState } from '../components/ui/SortableTable'
 import { fmtDate, fmtRub } from '../lib/format'
 import type {
-  TransactionList, TxType, Account, Category, Loan,
+  TransactionList, TxType, Account, Category,
   SharedGroup, Member, CreateTransactionInput, Transaction,
 } from '../types'
 
@@ -34,7 +35,7 @@ interface Filters {
 
 interface TxForm {
   date: string; amount: string; description: string; type: string
-  account_id: string; category_id: string; loan_id: string
+  account_id: string; to_account_id: string; category_id: string
   shared_group_id: string; paid_by_member_id: string
 }
 
@@ -44,12 +45,11 @@ const AddTxModal = ({ open, onClose, onCreated }: {
   const { label } = useMeta()
   const [form, setForm] = useState<TxForm>({
     date: new Date().toISOString().split('T')[0], amount: '', description: '',
-    type: 'expense', account_id: '', category_id: '', loan_id: '',
+    type: 'expense', account_id: '', to_account_id: '', category_id: '',
     shared_group_id: '', paid_by_member_id: '',
   })
   const { data: accs } = useApiData<Account[]>(() => api.accounts.listAll(), [])
   const { data: cats } = useApiData<Category[]>(() => api.categories.list(), [])
-  const { data: loans } = useApiData<Loan[]>(() => api.loans.list(), [])
   const { data: groups } = useApiData<SharedGroup[]>(() => api.groups.list(), [])
   const { data: members } = useApiData<Member[]>(() => api.members.list(), [])
   const { run: create, loading, error } = useMutation(
@@ -62,7 +62,7 @@ const AddTxModal = ({ open, onClose, onCreated }: {
     return acc
   }, [])
   const isShared = !!form.shared_group_id
-  const showLoan = form.type === 'expense'
+  const isTransfer = form.type === 'transfer'
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -70,8 +70,8 @@ const AddTxModal = ({ open, onClose, onCreated }: {
       date: form.date, amount: parseFloat(form.amount) || 0, description: form.description,
       type: form.type,
       account_id: form.account_id ? parseInt(form.account_id) : null,
+      to_account_id: isTransfer && form.to_account_id ? parseInt(form.to_account_id) : undefined,
       category_id: form.category_id ? parseInt(form.category_id) : null,
-      loan_id: showLoan && form.loan_id ? parseInt(form.loan_id) : undefined,
       shared_group_id: isShared ? parseInt(form.shared_group_id) : undefined,
       paid_by_member_id: isShared && form.paid_by_member_id ? parseInt(form.paid_by_member_id) : undefined,
     })
@@ -88,22 +88,24 @@ const AddTxModal = ({ open, onClose, onCreated }: {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <Select label="Тип" value={form.type}
-            onChange={(e) => setForm({ ...form, type: e.target.value, category_id: '', loan_id: '' })}>
+            onChange={(e) => setForm({ ...form, type: e.target.value, category_id: '' })}>
             <option value="expense">{label('transaction_types', 'expense')}</option>
             <option value="income">{label('transaction_types', 'income')}</option>
             <option value="transfer">{label('transaction_types', 'transfer')}</option>
           </Select>
-          <Select label="Категория" value={form.category_id}
-            onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
-            <option value="">—</option>
-            {groupedCats.map((c) => (
-              <option key={c.id} value={c.id}>{c.parent_id ? '   ' : ''}{c.icon} {c.name}</option>
-            ))}
-          </Select>
+          {!isTransfer && (
+            <Select label="Категория" value={form.category_id}
+              onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
+              <option value="">—</option>
+              {groupedCats.map((c) => (
+                <option key={c.id} value={c.id}>{c.parent_id ? '   ' : ''}{c.icon} {c.name}</option>
+              ))}
+            </Select>
+          )}
         </div>
         <Input label="Описание" value={form.description} placeholder="Продукты, такси…"
           onChange={(e) => setForm({ ...form, description: e.target.value })} />
-        <Select label="Счёт" value={form.account_id}
+        <Select label={isTransfer ? 'Со счёта' : 'Счёт'} value={form.account_id}
           onChange={(e) => setForm({ ...form, account_id: e.target.value })}>
           <option value="">—</option>
           {(accs ?? []).map((a) => (
@@ -112,18 +114,24 @@ const AddTxModal = ({ open, onClose, onCreated }: {
             </option>
           ))}
         </Select>
-        {showLoan && (
-          <Select label="Кредит" value={form.loan_id}
-            onChange={(e) => setForm({ ...form, loan_id: e.target.value })}>
-            <option value="">— Нет —</option>
-            {(loans ?? []).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+        {isTransfer && (
+          <Select label="На счёт" value={form.to_account_id}
+            onChange={(e) => setForm({ ...form, to_account_id: e.target.value })}>
+            <option value="">—</option>
+            {(accs ?? []).filter((a) => String(a.id) !== form.account_id).map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.is_hidden ? '🔒 ' : ''}{a.name}
+              </option>
+            ))}
           </Select>
         )}
-        <Select label="Деление расходов" value={form.shared_group_id}
-          onChange={(e) => setForm({ ...form, shared_group_id: e.target.value, paid_by_member_id: e.target.value ? form.paid_by_member_id : '' })}>
-          <option value="">— Личный —</option>
-          {(groups ?? []).map((g) => <option key={g.id} value={g.id}>{g.icon} {g.name}</option>)}
-        </Select>
+        {!isTransfer && (
+          <Select label="Деление расходов" value={form.shared_group_id}
+            onChange={(e) => setForm({ ...form, shared_group_id: e.target.value, paid_by_member_id: e.target.value ? form.paid_by_member_id : '' })}>
+            <option value="">— Личный —</option>
+            {(groups ?? []).map((g) => <option key={g.id} value={g.id}>{g.icon} {g.name}</option>)}
+          </Select>
+        )}
         {isShared && (
           <Select label="Кто оплатил" value={form.paid_by_member_id}
             onChange={(e) => setForm({ ...form, paid_by_member_id: e.target.value })}>
@@ -229,6 +237,7 @@ const Transactions = () => {
                     <InlineEdit value={tx.date} type="date" displayValue={fmtDate(tx.date)} onSave={(v) => handleInline(tx, 'date', v)} />
                     {tx.shared_group_id && <span className="ml-1 text-[10px]" style={{ color: 'var(--accent)' }} title="Деление расходов">👥</span>}
                     {tx.reminder_id && <span className="ml-1 text-[10px]" style={{ color: 'var(--chart-3)' }} title="Из отложенного платежа">📅</span>}
+                    {tx.loan_id && <span className="ml-1 text-[10px]" style={{ color: 'var(--warning)' }} title="Платёж по кредиту">🏦</span>}
                   </Td>
                   <Td><InlineEdit value={tx.description} onSave={(v) => handleInline(tx, 'description', v)} /></Td>
                   <Td align="right">

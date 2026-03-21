@@ -1,3 +1,4 @@
+// FILE: src/pages/loans/PaymentCell.tsx
 import { useState, useRef, useEffect } from 'react'
 import { useMutation } from '../../hooks/useApi'
 import api from '../../api/client'
@@ -18,15 +19,15 @@ const PaymentCell = ({ day, loan, onSaved }: Props) => {
 
   useEffect(() => {
     if (editing) {
-      setValue(day.payment > 0 ? String(day.payment) : '')
+      setValue('')
       setTimeout(() => inputRef.current?.focus(), 0)
     }
-  }, [editing, day.payment])
+  }, [editing])
 
   const save = async () => {
     setEditing(false)
     const amt = parseFloat(value) || 0
-    if (amt <= 0 || amt === day.payment) return
+    if (amt <= 0) return
     await createPayment({
       date: day.date,
       amount: amt,
@@ -42,6 +43,7 @@ const PaymentCell = ({ day, loan, onSaved }: Props) => {
   if (editing) {
     return (
       <input ref={inputRef} type="number" step="0.01" value={value}
+        placeholder={day.payment > 0 ? `+к ${day.payment}` : '0'}
         onChange={(e) => setValue(e.target.value)} onBlur={save}
         onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false) }}
         className="w-20 px-1 py-0.5 text-right text-xs rounded border outline-none tabular-nums"
@@ -52,7 +54,7 @@ const PaymentCell = ({ day, loan, onSaved }: Props) => {
   return (
     <span onClick={() => setEditing(true)}
       className="cursor-pointer rounded px-1 py-0.5 -mx-1 transition-colors hover:outline hover:outline-1"
-      style={{ outlineColor: 'var(--border)' }} title="Добавить платёж">
+      style={{ outlineColor: 'var(--border)' }} title={day.payment > 0 ? 'Добавить ещё платёж' : 'Добавить платёж'}>
       {day.payment > 0
         ? <span className="app-accent font-bold">{fmtRub(day.payment)}</span>
         : <span className="app-text-muted opacity-30">+</span>}
