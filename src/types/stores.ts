@@ -1,6 +1,8 @@
 export interface WidgetInstance {
   id: string
   type: string
+  width?: number
+  height?: number
 }
 
 export interface DashboardStore {
@@ -8,6 +10,7 @@ export interface DashboardStore {
   addWidget: (type: string) => void
   removeWidget: (id: string) => void
   reorderWidgets: (widgets: WidgetInstance[]) => void
+  resizeWidget: (id: string, width: number, height: number) => void
 }
 
 export interface ThemeStore {

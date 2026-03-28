@@ -19,6 +19,7 @@ import { useApiData } from '../hooks/useApi'
 import { useDashboardStore } from '../stores/dashboard'
 import api from '../api/client'
 import PageHeader from '../components/PageHeader'
+import MasonryLayout from '../components/MasonryLayout'
 import Spinner from '../components/ui/Spinner'
 import AddWidgetMenu from '../widgets/AddWidgetMenu'
 import { getWidgetDef } from '../widgets/registry'
@@ -32,6 +33,7 @@ const SortableWidget = ({ widget, data, onRemove, onDataChanged }: {
   onDataChanged: () => void
 }) => {
   const def = getWidgetDef(widget.type)
+  const { resizeWidget } = useDashboardStore()
   const {
     attributes, listeners, setNodeRef, setActivatorNodeRef,
     transform, transition, isDragging,
@@ -42,6 +44,8 @@ const SortableWidget = ({ widget, data, onRemove, onDataChanged }: {
     transition,
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 50 : undefined,
+    width: widget.width ? `${widget.width}px` : 'auto',
+    height: widget.height ? `${widget.height}px` : 'auto',
   }
 
   if (!def) return null
@@ -55,7 +59,12 @@ const SortableWidget = ({ widget, data, onRemove, onDataChanged }: {
         {...listeners}
         className="contents [&_.drag-handle]:cursor-grab [&_.drag-handle]:active:cursor-grabbing"
       >
-        <Comp data={data} onRemove={onRemove} onDataChanged={onDataChanged} />
+        <Comp 
+          data={data} 
+          onRemove={onRemove} 
+          onDataChanged={onDataChanged} 
+          onResize={(width, height) => resizeWidget(widget.id, width, height)}
+        />
       </div>
     </div>
   )
@@ -106,7 +115,7 @@ const Dashboard = () => {
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={widgets.map((w) => w.id)} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <MasonryLayout>
             {widgets.map((w) => (
               <SortableWidget
                 key={w.id}
@@ -116,7 +125,7 @@ const Dashboard = () => {
                 onDataChanged={handleDataChanged}
               />
             ))}
-          </div>
+          </MasonryLayout>
         </SortableContext>
       </DndContext>
     </div>

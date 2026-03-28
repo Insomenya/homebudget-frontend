@@ -5,6 +5,7 @@ export interface WidgetComponentProps {
   data: Dashboard | null
   onRemove: () => void
   onDataChanged?: () => void
+  onResize?: (width: number, height: number) => void
 }
 
 export interface WidgetDef {

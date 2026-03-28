@@ -31,6 +31,12 @@ export const useDashboardStore = create<DashboardStore>()(
           widgets: s.widgets.filter((w) => w.id !== id),
         })),
       reorderWidgets: (widgets) => set({ widgets }),
+      resizeWidget: (id, width, height) =>
+        set((s) => ({
+          widgets: s.widgets.map((w) =>
+            w.id === id ? { ...w, width, height } : w
+          ),
+        })),
     }),
     { name: 'hb-dashboard' },
   ),
