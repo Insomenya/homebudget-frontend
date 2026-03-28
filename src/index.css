@@ -158,6 +158,12 @@ body {
   background-size: 32px 32px;
 }
 
+/* react-grid-layout placeholder */
+.react-grid-item.react-grid-placeholder {
+  background: var(--text-muted);
+  opacity: 0.3;
+}
+
 /* scrollbar */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }

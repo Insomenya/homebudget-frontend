@@ -22,19 +22,25 @@ export const useDashboardStore = create<DashboardStore>()(
   persist(
     (set) => ({
       widgets: DEFAULT_WIDGETS,
-      addWidget: (type) =>
+      addWidget: (type, w, h) =>
         set((s) => ({
-          widgets: [...s.widgets, { id: uid(), type }],
+          widgets: [...s.widgets, { id: uid(), type, w, h }],
         })),
       removeWidget: (id) =>
         set((s) => ({
           widgets: s.widgets.filter((w) => w.id !== id),
         })),
       reorderWidgets: (widgets) => set({ widgets }),
-      resizeWidget: (id, width, height) =>
+      resizeWidget: (id, w, h) =>
+        set((s) => ({
+          widgets: s.widgets.map((widget) =>
+            widget.id === id ? { ...widget, w, h } : widget
+          ),
+        })),
+      moveWidget: (id, x, y) =>
         set((s) => ({
           widgets: s.widgets.map((w) =>
-            w.id === id ? { ...w, width, height } : w
+            w.id === id ? { ...w, x, y } : w
           ),
         })),
     }),

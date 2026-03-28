@@ -13,6 +13,8 @@ export interface WidgetDef {
   label: string
   icon: string
   component: React.ComponentType<WidgetComponentProps>
+  initialW?: number
+  initialH?: number
 }
 
 export interface WidgetShellProps {
