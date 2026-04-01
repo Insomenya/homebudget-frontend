@@ -17,7 +17,7 @@ import { Table, Td, Tr } from '../components/ui/Table'
 import { SortableTh, toggleSort, sortItems, type SortState } from '../components/ui/SortableTable'
 import InlineEdit from '../components/ui/InlineEdit'
 import DatePicker from '../components/ui/DatePicker'
-import type { PlannedTransaction, Category, Member, SharedGroup, CreatePlannedInput, UpdatePlannedInput } from '../types'
+import type { PlannedTransaction, Category, Member, SharedGroup, Account, CreatePlannedInput, UpdatePlannedInput } from '../types'
 import type { PlanForm, PlanModalProps } from '../types/pages'
 import { fmtDate, fmtRub } from '../lib/format'
 
@@ -96,7 +96,10 @@ const PlanModal = ({ open, plan, onClose, onSaved }: PlanModalProps) => {
         </div>
         <Select label="Категория" value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
           <option value="">—</option>
-          {(cats ?? []).filter((c) => c.type === form.type).map((c) => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+          {(cats ?? []).filter((c) => c.type === form.type).map((c) => <option key={c.id} value={c.id}
+            style={c.name.startsWith('Кредит: ') ? { color: '#a855f7', fontWeight: 600 } : undefined}>
+            {c.icon} {c.name}
+          </option>)}
         </Select>
         <Select label="Деление расходов" value={form.shared_group_id}
           onChange={(e) => setForm({ ...form, shared_group_id: e.target.value, paid_by_member_id: e.target.value ? form.paid_by_member_id : '' })}>
@@ -133,37 +136,20 @@ const Planning = () => {
   const [sort, setSort] = useState<SortState>({ col: 'next_due', dir: 'asc' })
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(20)
+  const [execAccounts, setExecAccounts] = useState<Record<number, string>>({})
+  const { data: accs } = useApiData<Account[]>(() => api.accounts.list(), [])
   const { run: remove } = useMutation((id: number) => api.planned.delete(id))
   const { run: activate } = useMutation((id: number) => api.planned.activate(id))
-  const { run: createTx } = useMutation((d: CreatePlannedInput) => api.transactions.create({
-    date: new Date().toISOString().split('T')[0],
-    amount: d.amount,
-    description: d.name,
-    type: d.type,
-    category_id: d.category_id,
-    shared_group_id: d.shared_group_id,
-    paid_by_member_id: d.paid_by_member_id,
-    loan_id: d.loan_id,
-    account_id: null,
-  }))
+  const { run: execute } = useMutation((args: { id: number; accountId: number }) =>
+    api.planned.executeReminder(args.id, { account_id: args.accountId }))
 
   const handleDelete = async (id: number) => { if (!confirm('Удалить?')) return; await remove(id); reload() }
   const handleActivate = async (id: number) => { await activate(id); reload() }
   const handleExecuteNow = async (p: PlannedTransaction) => {
-    await createTx({
-      name: p.name,
-      amount: p.amount,
-      type: p.type,
-      category_id: p.category_id,
-      shared_group_id: p.shared_group_id,
-      paid_by_member_id: p.paid_by_member_id,
-      loan_id: p.loan_id,
-      recurrence: p.recurrence,
-      start_date: p.start_date,
-      end_date: p.end_date,
-      notify_days_before: p.notify_days_before,
-      overdue_days_limit: p.overdue_days_limit,
-    })
+    const accId = execAccounts[p.id]
+    if (!accId) return
+    await execute({ id: p.id, accountId: parseInt(accId) })
+    setExecAccounts(prev => { const n = { ...prev }; delete n[p.id]; return n })
     reload()
   }
 
@@ -228,7 +214,14 @@ const Planning = () => {
                   </Badge>
                 </Td>
                 <Td>
-                  <div className="flex gap-1 justify-end">
+                  <div className="flex gap-1 justify-end items-center">
+                    <select value={execAccounts[p.id] ?? ''}
+                      onChange={(e) => setExecAccounts(prev => ({ ...prev, [p.id]: e.target.value }))}
+                      className="px-1.5 py-1 rounded-lg text-xs border outline-none app-text"
+                      style={{ borderColor: 'var(--border)', background: 'var(--surface-overlay)' }}>
+                      <option value="">Счёт</option>
+                      {(accs ?? []).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                    </select>
                     {!p.is_active && (
                       <button onClick={() => handleActivate(p.id)}
                         className="p-1.5 rounded-lg transition-colors cursor-pointer"

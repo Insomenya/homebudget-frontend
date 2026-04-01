@@ -25,6 +25,7 @@ const PendingWidget = ({ data, onRemove, onDataChanged }: WidgetComponentProps) 
   const [execAmount, setExecAmount] = useState('')
   const [loanPayModal, setLoanPayModal] = useState<{ loan: Loan; dueDate: string } | null>(null)
   const [loanPayAmount, setLoanPayAmount] = useState('')
+  const [loanPayAccount, setLoanPayAccount] = useState('')
 
   const { data: accounts } = useApiData<Account[]>(() => api.accounts.list(), [])
   const { data: plans } = useApiData<PlannedTransaction[]>(() => api.planned.list(true), [])
@@ -94,17 +95,18 @@ const PendingWidget = ({ data, onRemove, onDataChanged }: WidgetComponentProps) 
     if (!loan) return
     setLoanPayModal({ loan, dueDate })
     setLoanPayAmount(String(plan.amount))
+    setLoanPayAccount(loan.default_account_id ? String(loan.default_account_id) : '')
   }
 
   const handleLoanPaymentSave = async () => {
-    if (!loanPayModal) return
+    if (!loanPayModal || !loanPayAccount) return
     await createTx({
       date: loanPayModal.dueDate,
       amount: parseFloat(loanPayAmount) || 0,
       description: `Платёж: ${loanPayModal.loan.name}`,
       type: 'expense',
-      account_id: loanPayModal.loan.default_account_id,
-      category_id: loanPayModal.loan.category_id,
+      account_id: parseInt(loanPayAccount),
+      category_id: loanPayModal.loan.loan_category_id ?? loanPayModal.loan.category_id,
       loan_id: loanPayModal.loan.id,
     })
     setLoanPayModal(null)
@@ -234,6 +236,11 @@ const PendingWidget = ({ data, onRemove, onDataChanged }: WidgetComponentProps) 
             </div>
             <Input label="Сумма" type="number" step="0.01" value={loanPayAmount}
               onChange={(e) => setLoanPayAmount(e.target.value)} />
+            <Select label="Счёт списания" value={loanPayAccount}
+              onChange={(e) => setLoanPayAccount(e.target.value)}>
+              <option value="">—</option>
+              {(accounts ?? []).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </Select>
             <Button onClick={handleLoanPaymentSave} loading={loanPayLoading} className="w-full">
               Добавить платёж
             </Button>

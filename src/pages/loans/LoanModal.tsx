@@ -93,12 +93,18 @@ const LoanModal = ({ open, onClose, onSaved }: Props) => {
         <div className="grid grid-cols-2 gap-4">
           <Input label="Уже выплачено (тело)" type="number" value={form.already_paid}
             onChange={(e) => setForm({ ...form, already_paid: e.target.value })} />
-          <Select label="Категория" value={form.category_id}
-            onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
-            <option value="">—</option>
-            {(cats ?? []).filter((c) => c.type === 'expense').map((c) =>
-              <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-          </Select>
+          <div>
+            <Select label="Категория" value={form.category_id}
+              onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
+              <option value="">—</option>
+              {(cats ?? []).filter((c) => c.type === 'expense').map((c) =>
+                <option key={c.id} value={c.id}
+                  style={c.name.startsWith('Кредит: ') ? { color: '#a855f7', fontWeight: 600 } : undefined}>
+                  {c.icon} {c.name}
+                </option>)}
+            </Select>
+            <p className="text-[11px] app-text-muted mt-1">Для платежей будет создана дочерняя категория</p>
+          </div>
         </div>
         <div className="border rounded-xl p-3" style={{ borderColor: 'var(--border-subtle)' }}>
           <label className="flex items-center gap-2 cursor-pointer mb-3">

@@ -99,7 +99,10 @@ const AddTxModal = ({ open, onClose, onCreated }: {
               onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
               <option value="">—</option>
               {groupedCats.map((c) => (
-                <option key={c.id} value={c.id}>{c.parent_id ? '   ' : ''}{c.icon} {c.name}</option>
+                <option key={c.id} value={c.id}
+                  style={c.name.startsWith('Кредит: ') ? { color: '#a855f7', fontWeight: 600 } : undefined}>
+                  {c.parent_id ? '   ' : ''}{c.icon} {c.name}
+                </option>
               ))}
             </Select>
           )}
@@ -149,6 +152,7 @@ const AddTxModal = ({ open, onClose, onCreated }: {
 
 const Transactions = () => {
   const { label } = useMeta()
+  const { data: accs } = useApiData<Account[]>(() => api.accounts.listAll(), [])
   const { data: cats } = useApiData<Category[]>(() => api.categories.list(), [])
   const { data: plans } = useApiData<PlannedTransaction[]>(() => api.planned.list(true), [])
   const { data: groups } = useApiData<SharedGroup[]>(() => api.groups.list(), [])
@@ -158,6 +162,7 @@ const Transactions = () => {
   const [f, setF] = useState<Filters>({ page: 1, limit: 20, sort: 'date', dir: 'DESC', search: '', from: '', to: '', type: '' })
   const [showAdd, setShowAdd] = useState(false)
   const [editingTx, setEditingTx] = useState<Transaction | null>(null)
+  const [reminderAccounts, setReminderAccounts] = useState<Record<number, string>>({})
 
   const sortState: SortState = { col: f.sort, dir: f.dir.toLowerCase() as 'asc' | 'desc' }
   const fKey = JSON.stringify(f)
@@ -165,7 +170,7 @@ const Transactions = () => {
   const { data, loading, reload } = useApiData<TransactionList>(fetcher, [fKey])
   const { run: deleteTx } = useMutation((id: number) => api.transactions.delete(id))
   const { run: undoTx } = useMutation((id: number) => api.transactions.undo(id))
-  const { run: executeReminder } = useMutation((id: number) => api.planned.executeReminder(id, {}))
+  const { run: executeReminder } = useMutation((args: { id: number; accountId: number }) => api.planned.executeReminder(args.id, { account_id: args.accountId }))
   const { run: updateTx } = useMutation(
     (args: { id: number; tx: Transaction; field: string; value: string }) => {
       const t = args.tx
@@ -191,7 +196,10 @@ const Transactions = () => {
   const handleSort = (col: string) => setF((p) => ({ ...p, sort: col, dir: p.sort === col && p.dir === 'DESC' ? 'ASC' : 'DESC', page: 1 }))
   const handleInline = async (tx: Transaction, field: string, value: string) => { await updateTx({ id: tx.id, tx, field, value }); reload() }
   const handleExecuteReminder = async (id: number) => {
-    await executeReminder(id)
+    const accountId = reminderAccounts[id]
+    if (!accountId) return
+    await executeReminder({ id, accountId: parseInt(accountId) })
+    setReminderAccounts(prev => { const n = {...prev}; delete n[id]; return n })
     reload()
     reloadReminders()
   }
@@ -271,7 +279,14 @@ const Transactions = () => {
                       </div>
                     )
                   })()}
-                  <div className="ml-3 shrink-0">
+                  <div className="ml-3 shrink-0 flex items-center gap-2">
+                    <select value={reminderAccounts[r.id] ?? ''}
+                      onChange={(e) => setReminderAccounts(prev => ({ ...prev, [r.id]: e.target.value }))}
+                      className="px-2 py-1 rounded-xl text-sm border outline-none app-text"
+                      style={{ borderColor: 'var(--border)', background: 'var(--surface-overlay)' }}>
+                      <option value="">Счёт</option>
+                      {(accs ?? []).map((a) => <option key={a.id} value={a.id}>{a.is_hidden ? '🔒 ' : ''}{a.name}</option>)}
+                    </select>
                     <Button size="sm" onClick={() => handleExecuteReminder(r.id)}>
                       <Play size={14} /> Провести
                     </Button>
@@ -334,7 +349,10 @@ const Transactions = () => {
                       >
                         <option value="">—</option>
                         {(cats ?? []).filter((c) => c.type === tx.type).map((c) => (
-                          <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                          <option key={c.id} value={c.id}
+                            style={c.name.startsWith('Кредит: ') ? { color: '#a855f7', fontWeight: 600 } : undefined}>
+                            {c.icon} {c.name}
+                          </option>
                         ))}
                       </select>
                     ) : catName(tx.category_id)}
@@ -401,9 +419,42 @@ const Transactions = () => {
             <Select label="Категория" value={editingTx.category_id ?? ''} onChange={(e) => setEditingTx({ ...editingTx, category_id: e.target.value ? parseInt(e.target.value) : null })}>
               <option value="">—</option>
               {(cats ?? []).filter((c) => c.type === editingTx.type).map((c) => (
-                <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                <option key={c.id} value={c.id}
+                  style={c.name.startsWith('Кредит: ') ? { color: '#a855f7', fontWeight: 600 } : undefined}>
+                  {c.icon} {c.name}
+                </option>
               ))}
             </Select>
+            {editingTx.type !== 'transfer' && (
+              <Select label="Счёт" value={editingTx.account_id ?? ''} onChange={(e) => setEditingTx({ ...editingTx, account_id: e.target.value ? parseInt(e.target.value) : null })}>
+                <option value="">—</option>
+                {(accs ?? []).map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.is_hidden ? '🔒 ' : ''}{a.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+            {editingTx.type === 'transfer' && (
+              <div className="grid grid-cols-2 gap-3">
+                <Select label="Со счёта" value={editingTx.account_id ?? ''} onChange={(e) => setEditingTx({ ...editingTx, account_id: e.target.value ? parseInt(e.target.value) : null })}>
+                  <option value="">—</option>
+                  {(accs ?? []).map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.is_hidden ? '🔒 ' : ''}{a.name}
+                    </option>
+                  ))}
+                </Select>
+                <Select label="На счёт" value={editingTx.to_account_id ?? ''} onChange={(e) => setEditingTx({ ...editingTx, to_account_id: e.target.value ? parseInt(e.target.value) : null })}>
+                  <option value="">—</option>
+                  {(accs ?? []).filter((a) => editingTx.account_id && a.id !== editingTx.account_id).map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.is_hidden ? '🔒 ' : ''}{a.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            )}
             <Select label="Группа деления" value={editingTx.shared_group_id ?? ''} onChange={(e) => setEditingTx({ ...editingTx, shared_group_id: e.target.value ? parseInt(e.target.value) : null })}>
               <option value="">—</option>
               {(groups ?? []).map((g) => <option key={g.id} value={g.id}>{g.icon} {g.name}</option>)}

@@ -12,6 +12,7 @@ export interface Loan {
   default_account_id: number | null
   loan_account_id: number | null
   category_id: number | null
+  loan_category_id: number | null
   planned_id: number | null
   accounting_start_date: string
   initial_accrued_interest: number

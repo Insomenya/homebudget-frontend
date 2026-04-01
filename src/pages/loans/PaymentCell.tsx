@@ -1,9 +1,8 @@
-// FILE: src/pages/loans/PaymentCell.tsx
 import { useState, useRef, useEffect } from 'react'
-import { useMutation } from '../../hooks/useApi'
+import { useApiData, useMutation } from '../../hooks/useApi'
 import api from '../../api/client'
 import { fmtRub } from '../../lib/format'
-import type { CreateTransactionInput, Loan } from '../../types'
+import type { Account, CreateTransactionInput, Loan } from '../../types'
 
 interface Props {
   day: { date: string; payment: number; is_payment_day: boolean }
@@ -13,28 +12,31 @@ interface Props {
 
 const PaymentCell = ({ day, loan, onSaved }: Props) => {
   const [editing, setEditing] = useState(false)
-  const [value, setValue] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [amount, setAmount] = useState('')
+  const [accountId, setAccountId] = useState('')
+  const amountRef = useRef<HTMLInputElement>(null)
   const { run: createPayment } = useMutation((d: CreateTransactionInput) => api.transactions.create(d))
+  const { data: accs } = useApiData<Account[]>(() => api.accounts.list(), [])
 
   useEffect(() => {
     if (editing) {
-      setValue('')
-      setTimeout(() => inputRef.current?.focus(), 0)
+      setAmount('')
+      setAccountId(loan.default_account_id ? String(loan.default_account_id) : '')
+      setTimeout(() => amountRef.current?.focus(), 0)
     }
-  }, [editing])
+  }, [editing, loan.default_account_id])
 
   const save = async () => {
     setEditing(false)
-    const amt = parseFloat(value) || 0
-    if (amt <= 0) return
+    const amt = parseFloat(amount) || 0
+    if (amt <= 0 || !accountId) return
     await createPayment({
       date: day.date,
       amount: amt,
       description: `Платёж: ${loan.name}`,
       type: 'expense',
-      account_id: loan.default_account_id,
-      category_id: loan.category_id,
+      account_id: parseInt(accountId),
+      category_id: loan.loan_category_id ?? loan.category_id,
       loan_id: loan.id,
     })
     onSaved()
@@ -42,12 +44,25 @@ const PaymentCell = ({ day, loan, onSaved }: Props) => {
 
   if (editing) {
     return (
-      <input ref={inputRef} type="number" step="0.01" value={value}
-        placeholder={day.payment > 0 ? `+к ${day.payment}` : '0'}
-        onChange={(e) => setValue(e.target.value)} onBlur={save}
-        onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false) }}
-        className="w-20 px-1 py-0.5 text-right text-xs rounded border outline-none tabular-nums"
-        style={{ borderColor: 'var(--accent)', background: 'var(--surface-overlay)', color: 'var(--text-primary)' }} />
+      <div className="flex flex-col gap-1" onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) save()
+      }}>
+        {accs && accs.length > 0 && (
+          <select value={accountId} onChange={(e) => setAccountId(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Escape') setEditing(false) }}
+            className="w-full px-1 py-0.5 text-xs rounded border outline-none app-text"
+            style={{ borderColor: 'var(--border)', background: 'var(--surface-overlay)' }}>
+            <option value="">Счёт</option>
+            {accs.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        )}
+        <input ref={amountRef} type="number" step="0.01" value={amount}
+          placeholder={day.payment > 0 ? `+к ${day.payment}` : '0'}
+          onChange={(e) => setAmount(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false) }}
+          className="w-20 px-1 py-0.5 text-right text-xs rounded border outline-none tabular-nums"
+          style={{ borderColor: 'var(--accent)', background: 'var(--surface-overlay)', color: 'var(--text-primary)' }} />
+      </div>
     )
   }
 

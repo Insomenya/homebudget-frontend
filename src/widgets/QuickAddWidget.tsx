@@ -84,7 +84,10 @@ const QuickAddWidget = ({ onRemove, onDataChanged }: WidgetComponentProps) => {
             className="flex-1 px-2 py-2 rounded-xl text-xs border outline-none app-text"
             style={{ borderColor: 'var(--border)', background: 'var(--surface-overlay)' }}>
             <option value="">Категория</option>
-            {filteredCats.map((c) => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+            {filteredCats.map((c) => <option key={c.id} value={c.id}
+              style={c.name.startsWith('Кредит: ') ? { color: '#a855f7', fontWeight: 600 } : undefined}>
+              {c.icon} {c.name}
+            </option>)}
           </select>
           <select value={form.account_id}
             onChange={(e) => setForm({ ...form, account_id: e.target.value })}
