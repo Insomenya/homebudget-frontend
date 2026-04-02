@@ -94,7 +94,7 @@ const Loans = () => {
     () => selectedLoan?.planned_id ? api.planned.get(selectedLoan.planned_id) : Promise.resolve(null),
     [selectedLoan?.planned_id],
   )
-  const { data: loanPlanned } = useApiData<PlannedTransaction | null>(plannedFetcher, [selectedLoan?.planned_id ?? 0])
+  const { data: loanPlanned, reload: reloadPlanned } = useApiData<PlannedTransaction | null>(plannedFetcher, [selectedLoan?.planned_id ?? 0])
   const nextDueScheduleFetcher = useCallback(
     () => selectedLoan && loanPlanned?.next_due
       ? api.loans.schedule(selectedLoan.id, selectedLoan.start_date, loanPlanned.next_due)
@@ -120,7 +120,8 @@ const Loans = () => {
   const handlePaymentEdited = useCallback(() => {
     reload()
     reloadSchedule()
-  }, [reload, reloadSchedule])
+    reloadPlanned()
+  }, [reload, reloadSchedule, reloadPlanned])
 
   if (loading) return <div className="flex justify-center py-20"><Spinner /></div>
 
