@@ -134,6 +134,8 @@ const api = {
       request<PlannedReminder[]>('GET', '/planned/reminders'),
     executeReminder: (id: number, d?: ExecuteReminderInput) =>
       request<Transaction>('POST', `/planned/${id}/execute`, d ?? {}),
+    executeNow: (id: number, d?: ExecuteReminderInput) =>
+      request<Transaction>('POST', `/planned/${id}/execute-now`, d ?? {}),
     undoReminder: (id: number) =>
       request<void>('POST', `/planned/${id}/undo`),
     forecast: (days = 30) =>

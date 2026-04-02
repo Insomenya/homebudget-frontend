@@ -8,6 +8,7 @@ export interface Loan {
   end_date: string
   monthly_payment: number
   already_paid: number
+  remaining_debt: number
   account_id: number | null
   default_account_id: number | null
   loan_account_id: number | null

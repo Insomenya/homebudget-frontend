@@ -151,7 +151,7 @@ const Planning = () => {
   const { run: remove } = useMutation((id: number) => api.planned.delete(id))
   const { run: activate } = useMutation((id: number) => api.planned.activate(id))
   const { run: execute } = useMutation((args: { id: number; accountId: number }) =>
-    api.planned.executeReminder(args.id, { account_id: args.accountId }))
+    api.planned.executeNow(args.id, { account_id: args.accountId }))
 
   const handleDelete = async (id: number) => { if (!confirm('Удалить?')) return; await remove(id); reload() }
   const handleActivate = async (id: number) => { await activate(id); reload() }

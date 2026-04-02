@@ -285,7 +285,7 @@ const Loans = () => {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="app-text-secondary">Остаток</span>
-                  <span className="font-bold tabular-nums app-negative">{fmtRub(l.principal - l.already_paid)}</span>
+                  <span className="font-bold tabular-nums app-negative">{fmtRub(l.remaining_debt)}</span>
                 </div>
               </CardBody>
             </Card>
