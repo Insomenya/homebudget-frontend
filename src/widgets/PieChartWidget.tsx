@@ -7,6 +7,7 @@ import type { CategoryBreakdown } from '../types'
 import PeriodSelector, { usePeriodDates, type PeriodPreset } from '../components/ui/PeriodSelector'
 import WidgetShell from './WidgetShell'
 import { CHART_COLORS, formatRub, tooltipStyle, chartContainerStyle } from '../lib/charts'
+import { rollupSlices } from '../lib/categories'
 
 const TabBtn = ({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
   <button onClick={onClick} className="px-2.5 py-1 text-xs rounded-lg transition-colors cursor-pointer"
@@ -22,7 +23,10 @@ const PieChartWidget = ({ onRemove }: WidgetComponentProps) => {
 
   const fetcher = useCallback(() => api.analytics.categories({ type, from, to }), [type, from, to])
   const { data } = useApiData<CategoryBreakdown>(fetcher, [type, period])
-  const items = data?.items ?? []
+  const items = useMemo(() => {
+    const src = data?.items ?? []
+    return rollupSlices(src)
+  }, [data?.items])
 
   const chartData = useMemo(() => items.map((c, i) => ({
     id: c.category_name, label: `${c.category_icon} ${c.category_name}`,

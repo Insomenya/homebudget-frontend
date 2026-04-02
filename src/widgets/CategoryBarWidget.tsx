@@ -7,6 +7,7 @@ import type { CategoryBreakdown } from '../types'
 import PeriodSelector, { usePeriodDates, type PeriodPreset } from '../components/ui/PeriodSelector'
 import WidgetShell from './WidgetShell'
 import { CHART_COLORS, formatRub, tooltipStyle, nivoTheme, chartContainerStyle } from '../lib/charts'
+import { rollupSlices } from '../lib/categories'
 
 const CategoryBarWidget = ({ onRemove }: WidgetComponentProps) => {
   const [type, setType] = useState<'expense' | 'income'>('expense')
@@ -15,7 +16,9 @@ const CategoryBarWidget = ({ onRemove }: WidgetComponentProps) => {
 
   const fetcher = useCallback(() => api.analytics.categories({ type, from, to }), [type, from, to])
   const { data } = useApiData<CategoryBreakdown>(fetcher, [type, period])
-  const items = data?.items ?? []
+  const items = useMemo(() => {
+    return rollupSlices(data?.items ?? [])
+  }, [data?.items])
 
   const chartData = useMemo(() =>
     items.slice(0, 8).map((c, i) => ({
