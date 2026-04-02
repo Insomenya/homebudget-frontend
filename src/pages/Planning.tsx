@@ -17,12 +17,14 @@ import { Table, Td, Tr } from '../components/ui/Table'
 import { SortableTh, toggleSort, sortItems, type SortState } from '../components/ui/SortableTable'
 import InlineEdit from '../components/ui/InlineEdit'
 import DatePicker from '../components/ui/DatePicker'
+import DropdownSelect from '../components/ui/DropdownSelect'
+import type { DropdownSelectOption } from '../components/ui/DropdownSelect'
 import type { PlannedTransaction, Category, Member, SharedGroup, Account, CreatePlannedInput, UpdatePlannedInput } from '../types'
 import type { PlanForm, PlanModalProps } from '../types/pages'
 import { fmtDate, fmtRub } from '../lib/format'
 
 const PlanModal = ({ open, plan, onClose, onSaved }: PlanModalProps) => {
-  const { meta } = useMeta()
+  const { meta, label } = useMeta()
   const isNew = !plan
   const emptyForm: PlanForm = {
     name: '', amount: '', type: 'expense', recurrence: 'monthly',
@@ -59,6 +61,9 @@ const PlanModal = ({ open, plan, onClose, onSaved }: PlanModalProps) => {
 
   const isShared = !!form.shared_group_id
 
+  const typeOpts = (meta?.transaction_types ?? []).filter((t) => t.value !== 'transfer')
+  const recurrenceOpts = meta?.recurrence_types ?? []
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     await save({
@@ -74,6 +79,23 @@ const PlanModal = ({ open, plan, onClose, onSaved }: PlanModalProps) => {
     onSaved()
   }
 
+  const catOpts = (cats ?? []).filter((c) => c.type === form.type).map((c) => ({
+    value: String(c.id),
+    label: c.name,
+    icon: c.icon,
+    special: c.is_loan,
+  }))
+
+  const groupOpts = [
+    { value: '', label: '— Нет —' },
+    ...(groups ?? []).map((g) => ({ value: String(g.id), label: g.name, icon: g.icon })),
+  ]
+
+  const memberOpts = [
+    { value: '', label: '—' },
+    ...(members ?? []).map((m) => ({ value: String(m.id), label: m.name, icon: m.icon })),
+  ]
+
   if (!open) return null
 
   return (
@@ -83,34 +105,22 @@ const PlanModal = ({ open, plan, onClose, onSaved }: PlanModalProps) => {
         <div className="grid grid-cols-3 gap-4">
           <Input label="Сумма" type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
           <Select label="Тип" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
-            {(meta?.transaction_types ?? []).filter((t) => t.value !== 'transfer').map((t) => (
+            {typeOpts.map((t) => (
               <option key={t.id} value={t.value}>{t.label}</option>))}
           </Select>
           <Select label="Период" value={form.recurrence} onChange={(e) => setForm({ ...form, recurrence: e.target.value })}>
-            {(meta?.recurrence_types ?? []).map((r) => (<option key={r.id} value={r.value}>{r.label}</option>))}
+            {recurrenceOpts.map((r) => (<option key={r.id} value={r.value}>{r.label}</option>))}
           </Select>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <DatePicker label="Дата начала" value={form.start_date} onChange={(v) => setForm({ ...form, start_date: v })} />
           <DatePicker label="Дата окончания" value={form.end_date} onChange={(v) => setForm({ ...form, end_date: v })} placeholder="Без ограничения" />
         </div>
-        <Select label="Категория" value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
-          <option value="">—</option>
-          {(cats ?? []).filter((c) => c.type === form.type).map((c) => <option key={c.id} value={c.id}
-            style={c.name.startsWith('Кредит: ') ? { color: '#a855f7', fontWeight: 600 } : undefined}>
-            {c.icon} {c.name}
-          </option>)}
-        </Select>
-        <Select label="Деление расходов" value={form.shared_group_id}
-          onChange={(e) => setForm({ ...form, shared_group_id: e.target.value, paid_by_member_id: e.target.value ? form.paid_by_member_id : '' })}>
-          <option value="">— Нет —</option>
-          {(groups ?? []).map((g) => <option key={g.id} value={g.id}>{g.icon} {g.name}</option>)}
-        </Select>
+        <DropdownSelect label="Категория" value={form.category_id} onChange={(v) => setForm({ ...form, category_id: v })} options={catOpts} />
+        <DropdownSelect label="Деление расходов" value={form.shared_group_id}
+          onChange={(v) => setForm({ ...form, shared_group_id: v, paid_by_member_id: v ? form.paid_by_member_id : '' })} options={groupOpts} />
         {isShared && (
-          <Select label="Кто оплатит" value={form.paid_by_member_id} onChange={(e) => setForm({ ...form, paid_by_member_id: e.target.value })}>
-            <option value="">—</option>
-            {(members ?? []).map((m) => <option key={m.id} value={m.id}>{m.icon} {m.name}</option>)}
-          </Select>
+          <DropdownSelect label="Кто оплатит" value={form.paid_by_member_id} onChange={(v) => setForm({ ...form, paid_by_member_id: v })} options={memberOpts} />
         )}
         <div className="grid grid-cols-2 gap-4">
           <Input label="Напоминание за (дней)" type="number" min="0" value={form.notify_days_before}
@@ -215,13 +225,17 @@ const Planning = () => {
                 </Td>
                 <Td>
                   <div className="flex gap-1 justify-end items-center">
-                    <select value={execAccounts[p.id] ?? ''}
-                      onChange={(e) => setExecAccounts(prev => ({ ...prev, [p.id]: e.target.value }))}
-                      className="px-1.5 py-1 rounded-lg text-xs border outline-none app-text"
-                      style={{ borderColor: 'var(--border)', background: 'var(--surface-overlay)' }}>
-                      <option value="">Счёт</option>
-                      {(accs ?? []).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                    </select>
+                    <DropdownSelect
+                      value={execAccounts[p.id] ?? ''}
+                      onChange={(v) => setExecAccounts(prev => ({ ...prev, [p.id]: v }))}
+                      options={accs ? [
+                        { value: '', label: 'Счёт' },
+                        ...accs.map((a) => ({ value: String(a.id), label: a.name })),
+                      ] : [{ value: '', label: 'Счёт' }]}
+                      searchable={false}
+                      className="w-28"
+                      size="sm"
+                    />
                     {!p.is_active && (
                       <button onClick={() => handleActivate(p.id)}
                         className="p-1.5 rounded-lg transition-colors cursor-pointer"

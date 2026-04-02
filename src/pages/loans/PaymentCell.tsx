@@ -3,6 +3,8 @@ import { useApiData, useMutation } from '../../hooks/useApi'
 import api from '../../api/client'
 import { fmtRub } from '../../lib/format'
 import type { Account, CreateTransactionInput, Loan } from '../../types'
+import DropdownSelect from '../../components/ui/DropdownSelect'
+import type { DropdownSelectOption } from '../../components/ui/DropdownSelect'
 
 interface Props {
   day: { date: string; payment: number; is_payment_day: boolean }
@@ -42,19 +44,26 @@ const PaymentCell = ({ day, loan, onSaved }: Props) => {
     onSaved()
   }
 
+  const accountOpts: DropdownSelectOption[] = accs
+    ? [{ value: '', label: 'Счёт' }, ...accs.map((a) => ({
+        value: String(a.id),
+        label: a.is_hidden ? `🔒 ${a.name}` : a.name,
+        icon: a.is_hidden ? '🔒' : undefined,
+      }))] : [{ value: '', label: 'Счёт' }]
+
   if (editing) {
     return (
       <div className="flex flex-col gap-1" onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node)) save()
       }}>
         {accs && accs.length > 0 && (
-          <select value={accountId} onChange={(e) => setAccountId(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Escape') setEditing(false) }}
-            className="w-full px-1 py-0.5 text-xs rounded border outline-none app-text"
-            style={{ borderColor: 'var(--border)', background: 'var(--surface-overlay)' }}>
-            <option value="">Счёт</option>
-            {accs.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
+          <DropdownSelect
+            value={accountId}
+            onChange={setAccountId}
+            options={accountOpts}
+            searchable={false}
+            size="sm"
+          />
         )}
         <input ref={amountRef} type="number" step="0.01" value={amount}
           placeholder={day.payment > 0 ? `+к ${day.payment}` : '0'}

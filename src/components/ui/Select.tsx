@@ -1,33 +1,39 @@
+import { Children, isValidElement, useMemo, type ReactElement } from 'react'
 import { forwardRef } from 'react'
+import DropdownSelect, { type DropdownSelectOption } from './DropdownSelect'
 import clsx from 'clsx'
 import type { SelectProps } from '../../types/ui'
 
-const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ label, error, children, className, style, ...props }, ref) => (
-    <label className="block">
-      {label && (
-        <span className="block mb-1.5 text-sm font-medium app-text-secondary">
-          {label}
-        </span>
-      )}
-      <select
-        ref={ref}
-        className={clsx(
-          'w-full px-3.5 py-2.5 rounded-xl text-sm appearance-none border outline-none app-text',
-          className,
-        )}
-        style={{
-          backgroundColor: 'var(--surface-overlay)',
-          borderColor: error ? 'var(--negative)' : 'var(--border)',
-          ...style,
-        }}
+const Select = forwardRef<HTMLDivElement, SelectProps>(
+  ({ label, error, children, className, value, onChange, ...props }, _ref) => {
+    const options = useMemo(() => {
+      const result: DropdownSelectOption[] = []
+      Children.forEach(children, (child) => {
+        if (isValidElement(child) && child.type === 'option') {
+          result.push({
+            value: String(child.props.value),
+            label: String(child.props.children),
+            special: child.props['data-special'] !== undefined,
+            style: child.props.style,
+          })
+        }
+      })
+      return result
+    }, [children])
+
+    return (
+      <DropdownSelect
+        value={String(value ?? '')}
+        onChange={(v) => onChange?.({ target: { value: v } } as React.ChangeEvent<HTMLSelectElement>)}
+        options={options}
+        label={label}
+        error={error}
+        className={className}
+        searchable={false}
         {...props}
-      >
-        {children}
-      </select>
-      {error && <span className="mt-1 text-xs app-negative">{error}</span>}
-    </label>
-  ),
+      />
+    )
+  },
 )
 
 Select.displayName = 'Select'

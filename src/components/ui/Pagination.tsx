@@ -1,6 +1,13 @@
 import Button from './Button'
+import DropdownSelect from './DropdownSelect'
+import type { DropdownSelectOption } from './DropdownSelect'
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
+
+const pageOpts: DropdownSelectOption[] = PAGE_SIZE_OPTIONS.map((s) => ({
+  value: String(s),
+  label: `${s} строк`,
+}))
 
 interface PaginationProps {
   page: number
@@ -24,19 +31,14 @@ const Pagination = ({ page, pages, total, limit, onPage, onLimitChange }: Pagina
           Стр. {page} из {pages} · {total} записей
         </span>
         {onLimitChange && limit && (
-          <select
-            value={limit}
-            onChange={(e) => onLimitChange(parseInt(e.target.value))}
-            className="px-2 py-1 rounded-lg text-xs border outline-none app-text"
-            style={{
-              borderColor: 'var(--border)',
-              background: 'var(--surface-overlay)',
-            }}
-          >
-            {PAGE_SIZE_OPTIONS.map((s) => (
-              <option key={s} value={s}>{s} строк</option>
-            ))}
-          </select>
+          <DropdownSelect
+            value={String(limit)}
+            onChange={(v) => onLimitChange(parseInt(v))}
+            options={pageOpts}
+            searchable={false}
+            className="w-24"
+            size="sm"
+          />
         )}
       </div>
       {pages > 1 && (

@@ -1,5 +1,5 @@
 // FILE: src/pages/Transactions.tsx
-import { useState, useCallback, type FormEvent } from 'react'
+import { useState, useCallback, useEffect, type FormEvent } from 'react'
 import { Plus, Trash2, Search, Undo2, Pencil, Play } from 'lucide-react'
 import { useApiData, useMutation } from '../hooks/useApi'
 import { useMeta } from '../hooks/useMeta'
@@ -16,6 +16,8 @@ import EmptyState from '../components/ui/EmptyState'
 import Pagination from '../components/ui/Pagination'
 import InlineEdit from '../components/ui/InlineEdit'
 import DatePicker from '../components/ui/DatePicker'
+import DropdownSelect from '../components/ui/DropdownSelect'
+import type { DropdownSelectOption } from '../components/ui/DropdownSelect'
 import { Table, Td, Tr } from '../components/ui/Table'
 import { SortableTh, type SortState } from '../components/ui/SortableTable'
 import { fmtDate, fmtRub } from '../lib/format'
@@ -79,69 +81,84 @@ const AddTxModal = ({ open, onClose, onCreated }: {
     onCreated()
   }
 
+  const typeOpts: DropdownSelectOption[] = [
+    { value: 'expense', label: label('transaction_types', 'expense') },
+    { value: 'income', label: label('transaction_types', 'income') },
+    { value: 'transfer', label: label('transaction_types', 'transfer') },
+  ]
+
+  const catOpts: DropdownSelectOption[] = [
+    { value: '', label: '—' },
+    ...groupedCats.map((c) => ({
+      value: String(c.id),
+      label: `${c.parent_id ? '   ' : ''}${c.name}`,
+      icon: c.icon,
+      special: c.is_loan,
+    })),
+  ]
+
+  const accOpts: DropdownSelectOption[] = [
+    { value: '', label: '—' },
+    ...(accs ?? []).map((a) => ({
+      value: String(a.id),
+      label: a.name,
+    })),
+  ]
+
+  const toAccOpts = (fromId: string): DropdownSelectOption[] => [
+    { value: '', label: '—' },
+    ...(accs ?? []).filter((a) => String(a.id) !== fromId).map((a) => ({
+      value: String(a.id),
+      label: a.is_hidden ? `🔒 ${a.name}` : a.name,
+    })),
+  ]
+
+  const groupOpts: DropdownSelectOption[] = [
+    { value: '', label: '— Личный —' },
+    ...(groups ?? []).map((g) => ({ value: String(g.id), label: g.name, icon: g.icon })),
+  ]
+
+  const memberOpts: DropdownSelectOption[] = [
+    { value: '', label: '—' },
+    ...(members ?? []).map((m) => ({ value: String(m.id), label: m.name, icon: m.icon })),
+  ]
+
+  const updateForm = (updates: Partial<TxForm>) => setForm((p) => ({ ...p, ...updates }))
+
   return (
     <Modal open={open} onClose={onClose} title="Новая операция">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-4">
-          <DatePicker label="Дата" value={form.date} onChange={(v) => setForm({ ...form, date: v })} />
+          <DatePicker label="Дата" value={form.date} onChange={(v) => updateForm({ date: v })} />
           <Input label="Сумма" type="number" step="0.01" min="0.01" value={form.amount} placeholder="0.00"
-            onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+            onChange={(e) => updateForm({ amount: e.target.value })} />
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <Select label="Тип" value={form.type}
-            onChange={(e) => setForm({ ...form, type: e.target.value, category_id: '' })}>
-            <option value="expense">{label('transaction_types', 'expense')}</option>
-            <option value="income">{label('transaction_types', 'income')}</option>
-            <option value="transfer">{label('transaction_types', 'transfer')}</option>
-          </Select>
+          <DropdownSelect
+            label="Тип" value={form.type}
+            onChange={(v) => updateForm({ type: v, category_id: '' })}
+            options={typeOpts} searchable={false}
+          />
           {!isTransfer && (
-            <Select label="Категория" value={form.category_id}
-              onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
-              <option value="">—</option>
-              {groupedCats.map((c) => (
-                <option key={c.id} value={c.id}
-                  style={c.name.startsWith('Кредит: ') ? { color: '#a855f7', fontWeight: 600 } : undefined}>
-                  {c.parent_id ? '   ' : ''}{c.icon} {c.name}
-                </option>
-              ))}
-            </Select>
+            <DropdownSelect label="Категория" value={form.category_id}
+              onChange={(v) => updateForm({ category_id: v })} options={catOpts} />
           )}
         </div>
         <Input label="Описание" value={form.description} placeholder="Продукты, такси…"
-          onChange={(e) => setForm({ ...form, description: e.target.value })} />
-        <Select label={isTransfer ? 'Со счёта' : 'Счёт'} value={form.account_id}
-          onChange={(e) => setForm({ ...form, account_id: e.target.value })}>
-          <option value="">—</option>
-          {(accs ?? []).map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.is_hidden ? '🔒 ' : ''}{a.name}
-            </option>
-          ))}
-        </Select>
+          onChange={(e) => updateForm({ description: e.target.value })} />
+        <DropdownSelect label={isTransfer ? 'Со счёта' : 'Счёт'} value={form.account_id}
+          onChange={(v) => updateForm({ account_id: v })} options={accOpts} />
         {isTransfer && (
-          <Select label="На счёт" value={form.to_account_id}
-            onChange={(e) => setForm({ ...form, to_account_id: e.target.value })}>
-            <option value="">—</option>
-            {(accs ?? []).filter((a) => String(a.id) !== form.account_id).map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.is_hidden ? '🔒 ' : ''}{a.name}
-              </option>
-            ))}
-          </Select>
+          <DropdownSelect label="На счёт" value={form.to_account_id}
+            onChange={(v) => updateForm({ to_account_id: v })} options={toAccOpts(form.account_id)} />
         )}
         {!isTransfer && (
-          <Select label="Деление расходов" value={form.shared_group_id}
-            onChange={(e) => setForm({ ...form, shared_group_id: e.target.value, paid_by_member_id: e.target.value ? form.paid_by_member_id : '' })}>
-            <option value="">— Личный —</option>
-            {(groups ?? []).map((g) => <option key={g.id} value={g.id}>{g.icon} {g.name}</option>)}
-          </Select>
+          <DropdownSelect label="Деление расходов" value={form.shared_group_id}
+            onChange={(v) => updateForm({ shared_group_id: v, paid_by_member_id: v ? form.paid_by_member_id : '' })} options={groupOpts} />
         )}
         {isShared && (
-          <Select label="Кто оплатил" value={form.paid_by_member_id}
-            onChange={(e) => setForm({ ...form, paid_by_member_id: e.target.value })}>
-            <option value="">—</option>
-            {(members ?? []).map((m) => <option key={m.id} value={m.id}>{m.icon} {m.name}</option>)}
-          </Select>
+          <DropdownSelect label="Кто оплатил" value={form.paid_by_member_id}
+            onChange={(v) => updateForm({ paid_by_member_id: v })} options={memberOpts} />
         )}
         {error && <p className="text-sm app-negative">{error}</p>}
         <Button type="submit" loading={loading} className="self-end">Добавить</Button>
@@ -167,7 +184,7 @@ const Transactions = () => {
   const sortState: SortState = { col: f.sort, dir: f.dir.toLowerCase() as 'asc' | 'desc' }
   const fKey = JSON.stringify(f)
   const fetcher = useCallback(() => api.transactions.list(f as unknown as Record<string, string | number>), [fKey])
-  const { data, loading, reload } = useApiData<TransactionList>(fetcher, [fKey])
+  const { data: txData, loading, reload } = useApiData<TransactionList>(fetcher, [fKey])
   const { run: deleteTx } = useMutation((id: number) => api.transactions.delete(id))
   const { run: undoTx } = useMutation((id: number) => api.transactions.undo(id))
   const { run: executeReminder } = useMutation((args: { id: number; accountId: number }) => api.planned.executeReminder(args.id, { account_id: args.accountId }))
@@ -219,11 +236,26 @@ const Transactions = () => {
     return loans.find((x) => x.id === id)?.name ?? ''
   }
 
-  const items = data?.items ?? []
+  const items = txData?.items ?? []
+
+  const filterTypeOpts: DropdownSelectOption[] = [
+    { value: '', label: 'Все типы' },
+    { value: 'expense', label: label('transaction_types', 'expense') },
+    { value: 'income', label: label('transaction_types', 'income') },
+    { value: 'transfer', label: label('transaction_types', 'transfer') },
+  ]
+
+  const reminderAccOpts: DropdownSelectOption[] = [
+    { value: '', label: 'Счёт' },
+    ...(accs ?? []).map((a) => ({
+      value: String(a.id),
+      label: a.is_hidden ? `🔒 ${a.name}` : a.name,
+    })),
+  ]
 
   return (
     <>
-      <PageHeader title="Операции" description={`Всего: ${data?.total ?? 0}`}
+      <PageHeader title="Операции" description={`Всего: ${txData?.total ?? 0}`}
         actions={<Button onClick={() => setShowAdd(true)}><Plus size={16} /> Добавить</Button>} />
 
       <Card className="mb-4">
@@ -238,14 +270,13 @@ const Transactions = () => {
             </div>
             <DatePicker value={f.from} onChange={(v) => setF((p) => ({ ...p, from: v, page: 1 }))} className="w-44" />
             <DatePicker value={f.to} onChange={(v) => setF((p) => ({ ...p, to: v, page: 1 }))} className="w-44" />
-            <select value={f.type} onChange={(e) => setF((p) => ({ ...p, type: e.target.value, page: 1 }))}
-              className="px-3 py-2.5 rounded-xl text-sm border outline-none app-text"
-              style={{ borderColor: 'var(--border)', background: 'var(--surface-overlay)' }}>
-              <option value="">Все типы</option>
-              <option value="expense">{label('transaction_types', 'expense')}</option>
-              <option value="income">{label('transaction_types', 'income')}</option>
-              <option value="transfer">{label('transaction_types', 'transfer')}</option>
-            </select>
+            <DropdownSelect
+              value={f.type}
+              onChange={(v) => setF((p) => ({ ...p, type: v, page: 1 }))}
+              options={filterTypeOpts}
+              searchable={false}
+              className="w-40"
+            />
           </div>
         </CardBody>
       </Card>
@@ -280,13 +311,13 @@ const Transactions = () => {
                     )
                   })()}
                   <div className="ml-3 shrink-0 flex items-center gap-2">
-                    <select value={reminderAccounts[r.id] ?? ''}
-                      onChange={(e) => setReminderAccounts(prev => ({ ...prev, [r.id]: e.target.value }))}
-                      className="px-2 py-1 rounded-xl text-sm border outline-none app-text"
-                      style={{ borderColor: 'var(--border)', background: 'var(--surface-overlay)' }}>
-                      <option value="">Счёт</option>
-                      {(accs ?? []).map((a) => <option key={a.id} value={a.id}>{a.is_hidden ? '🔒 ' : ''}{a.name}</option>)}
-                    </select>
+                    <DropdownSelect
+                      value={reminderAccounts[r.id] ?? ''}
+                      onChange={(v) => setReminderAccounts(prev => ({ ...prev, [r.id]: v }))}
+                      options={reminderAccOpts}
+                      searchable={false}
+                      className="w-36"
+                    />
                     <Button size="sm" onClick={() => handleExecuteReminder(r.id)}>
                       <Play size={14} /> Провести
                     </Button>
@@ -312,8 +343,23 @@ const Transactions = () => {
                 <th className="px-4 py-3 text-left font-semibold text-xs" style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>Категория</th>
                 <th className="px-4 py-3 w-20" style={{ borderBottom: '1px solid var(--border-subtle)' }} />
               </tr></thead>
-              <tbody>{items.map((tx) => (
-                <tr key={tx.id} className="transition-colors">
+              <tbody>{items.map((tx) => {
+                const txTypeOpts: DropdownSelectOption[] = [
+                  { value: 'expense', label: label('transaction_types', 'expense') },
+                  { value: 'income', label: label('transaction_types', 'income') },
+                  { value: 'transfer', label: label('transaction_types', 'transfer') },
+                ]
+                const txCatOpts: DropdownSelectOption[] = [
+                  { value: '', label: '—' },
+                  ...(cats ?? []).filter((c) => c.type === tx.type).map((c) => ({
+                    value: String(c.id),
+                    label: c.name,
+                    icon: c.icon,
+                    special: c.is_loan,
+                  })),
+                ]
+                return (
+                <Tr key={tx.id} className="transition-colors">
                   <Td>
                     <InlineEdit value={tx.date} type="date" displayValue={fmtDate(tx.date)} onSave={(v) => handleInline(tx, 'date', v)} />
                     {tx.shared_group_id && <span className="ml-1 text-[10px]" style={{ color: 'var(--accent)' }} title="Деление расходов">👥</span>}
@@ -328,33 +374,24 @@ const Transactions = () => {
                       className={`tabular-nums ${tx.type === 'income' ? 'app-positive' : tx.type === 'expense' ? 'app-negative' : ''}`} />
                   </Td>
                   <Td>
-                    <select
+                    <DropdownSelect
                       value={tx.type}
-                      onChange={(e) => handleInline(tx, 'type', e.target.value)}
-                      className="px-2 py-1 rounded-lg text-xs border outline-none app-text"
-                      style={{ borderColor: 'var(--border)', background: 'var(--surface-overlay)' }}
-                    >
-                      <option value="expense">{label('transaction_types', 'expense')}</option>
-                      <option value="income">{label('transaction_types', 'income')}</option>
-                      <option value="transfer">{label('transaction_types', 'transfer')}</option>
-                    </select>
+                      onChange={(v) => handleInline(tx, 'type', v)}
+                      options={txTypeOpts}
+                      searchable={false}
+                      className="w-28"
+                      size="sm"
+                    />
                   </Td>
                   <Td className="text-sm">
                     {tx.type !== 'transfer' ? (
-                      <select
+                      <DropdownSelect
                         value={tx.category_id ?? ''}
-                        onChange={(e) => handleInline(tx, 'category_id', e.target.value)}
-                        className="px-2 py-1 rounded-lg text-xs border outline-none app-text"
-                        style={{ borderColor: 'var(--border)', background: 'var(--surface-overlay)' }}
-                      >
-                        <option value="">—</option>
-                        {(cats ?? []).filter((c) => c.type === tx.type).map((c) => (
-                          <option key={c.id} value={c.id}
-                            style={c.name.startsWith('Кредит: ') ? { color: '#a855f7', fontWeight: 600 } : undefined}>
-                            {c.icon} {c.name}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(v) => handleInline(tx, 'category_id', v)}
+                        options={txCatOpts}
+                        className="w-full"
+                        size="sm"
+                      />
                     ) : catName(tx.category_id)}
                     {tx.loan_id && <span className="ml-2 text-[11px] app-text-muted">Кредит: {loanName(tx.loan_id)}</span>}
                     {tx.paid_by_member_id && <span className="ml-2 text-[11px] app-text-muted">Участник: {memberName(tx.paid_by_member_id)}</span>}
@@ -374,10 +411,11 @@ const Transactions = () => {
                       <button onClick={() => handleDelete(tx.id)} className="p-1.5 rounded-lg transition-colors cursor-pointer" style={{ color: 'var(--text-muted)' }}><Trash2 size={14} /></button>
                     </div>
                   </Td>
-                </tr>
-              ))}</tbody>
+                </Tr>
+                )
+              })}</tbody>
             </Table>
-            <Pagination page={data!.page} pages={data!.pages} total={data!.total}
+            <Pagination page={txData!.page} pages={txData!.pages} total={txData!.total}
               limit={f.limit} onPage={(p) => setF((prev) => ({ ...prev, page: p }))}
               onLimitChange={(l) => setF((prev) => ({ ...prev, limit: l, page: 1 }))} />
           </>
@@ -385,89 +423,121 @@ const Transactions = () => {
       </Card>
 
       <AddTxModal open={showAdd} onClose={() => setShowAdd(false)} onCreated={() => { setShowAdd(false); reload() }} />
-      <Modal open={!!editingTx} onClose={() => setEditingTx(null)} title="Редактировать операцию">
-        {editingTx && (
-          <form
-            className="flex flex-col gap-3"
-            onSubmit={async (e) => {
-              e.preventDefault()
-              await api.transactions.update(editingTx.id, {
-                date: editingTx.date,
-                amount: editingTx.amount,
-                description: editingTx.description,
-                type: editingTx.type,
-                account_id: editingTx.account_id,
-                to_account_id: editingTx.to_account_id,
-                category_id: editingTx.category_id,
-                loan_id: editingTx.loan_id,
-                shared_group_id: editingTx.shared_group_id,
-                paid_by_member_id: editingTx.paid_by_member_id,
-                reminder_id: editingTx.reminder_id,
-              })
-              setEditingTx(null)
-              reload()
-            }}
-          >
-            <DatePicker label="Дата" value={editingTx.date} onChange={(v) => setEditingTx({ ...editingTx, date: v })} />
-            <Input label="Описание" value={editingTx.description} onChange={(e) => setEditingTx({ ...editingTx, description: e.target.value })} />
-            <Input label="Сумма" type="number" step="0.01" value={String(editingTx.amount)} onChange={(e) => setEditingTx({ ...editingTx, amount: parseFloat(e.target.value) || 0 })} />
-            <Select label="Тип" value={editingTx.type} onChange={(e) => setEditingTx({ ...editingTx, type: e.target.value as TxType })}>
-              <option value="expense">{label('transaction_types', 'expense')}</option>
-              <option value="income">{label('transaction_types', 'income')}</option>
-              <option value="transfer">{label('transaction_types', 'transfer')}</option>
-            </Select>
-            <Select label="Категория" value={editingTx.category_id ?? ''} onChange={(e) => setEditingTx({ ...editingTx, category_id: e.target.value ? parseInt(e.target.value) : null })}>
-              <option value="">—</option>
-              {(cats ?? []).filter((c) => c.type === editingTx.type).map((c) => (
-                <option key={c.id} value={c.id}
-                  style={c.name.startsWith('Кредит: ') ? { color: '#a855f7', fontWeight: 600 } : undefined}>
-                  {c.icon} {c.name}
-                </option>
-              ))}
-            </Select>
-            {editingTx.type !== 'transfer' && (
-              <Select label="Счёт" value={editingTx.account_id ?? ''} onChange={(e) => setEditingTx({ ...editingTx, account_id: e.target.value ? parseInt(e.target.value) : null })}>
-                <option value="">—</option>
-                {(accs ?? []).map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.is_hidden ? '🔒 ' : ''}{a.name}
-                  </option>
-                ))}
-              </Select>
-            )}
-            {editingTx.type === 'transfer' && (
-              <div className="grid grid-cols-2 gap-3">
-                <Select label="Со счёта" value={editingTx.account_id ?? ''} onChange={(e) => setEditingTx({ ...editingTx, account_id: e.target.value ? parseInt(e.target.value) : null })}>
-                  <option value="">—</option>
-                  {(accs ?? []).map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.is_hidden ? '🔒 ' : ''}{a.name}
-                    </option>
-                  ))}
-                </Select>
-                <Select label="На счёт" value={editingTx.to_account_id ?? ''} onChange={(e) => setEditingTx({ ...editingTx, to_account_id: e.target.value ? parseInt(e.target.value) : null })}>
-                  <option value="">—</option>
-                  {(accs ?? []).filter((a) => editingTx.account_id && a.id !== editingTx.account_id).map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.is_hidden ? '🔒 ' : ''}{a.name}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-            )}
-            <Select label="Группа деления" value={editingTx.shared_group_id ?? ''} onChange={(e) => setEditingTx({ ...editingTx, shared_group_id: e.target.value ? parseInt(e.target.value) : null })}>
-              <option value="">—</option>
-              {(groups ?? []).map((g) => <option key={g.id} value={g.id}>{g.icon} {g.name}</option>)}
-            </Select>
-            <Select label="Участник" value={editingTx.paid_by_member_id ?? ''} onChange={(e) => setEditingTx({ ...editingTx, paid_by_member_id: e.target.value ? parseInt(e.target.value) : null })}>
-              <option value="">—</option>
-              {(members ?? []).map((m) => <option key={m.id} value={m.id}>{m.icon} {m.name}</option>)}
-            </Select>
-            <Button type="submit" className="self-end">Сохранить</Button>
-          </form>
-        )}
-      </Modal>
+      <EditTxModal editingTx={editingTx} onClose={() => setEditingTx(null)} onSaved={() => { setEditingTx(null); reload() }} />
     </>
+  )
+}
+
+// ── Edit Transaction Modal ──────────────────────────
+const EditTxModal = ({ editingTx, onClose, onSaved }: {
+  editingTx: Transaction | null; onClose: () => void; onSaved: () => void
+}) => {
+  const { label } = useMeta()
+  const { data: accs } = useApiData<Account[]>(() => api.accounts.listAll(), [])
+  const { data: cats } = useApiData<Category[]>(() => api.categories.list(), [])
+  const { data: groups } = useApiData<SharedGroup[]>(() => api.groups.list(), [])
+  const { data: members } = useApiData<Member[]>(() => api.members.list(), [])
+
+  // Keep editable state in local state
+  const [tx, setTx] = useState<Transaction | null>(null)
+  useEffect(() => {
+    if (editingTx) setTx({ ...editingTx })
+    else setTx(null)
+  }, [editingTx?.id])
+
+  if (!tx) return null
+
+  const update = (updates: Partial<Transaction>) => setTx((prev) => prev ? { ...prev, ...updates } : null)
+
+  return (
+    <Modal open={!!tx} onClose={onClose} title="Редактировать операцию">
+      <form
+        className="flex flex-col gap-3"
+        onSubmit={async (e) => {
+          e.preventDefault()
+          await api.transactions.update(tx.id, {
+            date: tx.date,
+            amount: tx.amount,
+            description: tx.description,
+            type: tx.type,
+            account_id: tx.account_id,
+            to_account_id: tx.to_account_id,
+            category_id: tx.category_id,
+            loan_id: tx.loan_id,
+            shared_group_id: tx.shared_group_id,
+            paid_by_member_id: tx.paid_by_member_id,
+            reminder_id: tx.reminder_id,
+          })
+          onSaved()
+        }}
+      >
+        <DatePicker label="Дата" value={tx.date} onChange={(v) => update({ date: v })} />
+        <Input label="Описание" value={tx.description} onChange={(e) => update({ description: e.target.value })} />
+        <Input label="Сумма" type="number" step="0.01" value={String(tx.amount)} onChange={(e) => update({ amount: parseFloat(e.target.value) || 0 })} />
+        <DropdownSelect label="Тип" value={tx.type}
+          onChange={(v) => update({ type: v as TxType })}
+          options={[
+            { value: 'expense', label: label('transaction_types', 'expense') },
+            { value: 'income', label: label('transaction_types', 'income') },
+            { value: 'transfer', label: label('transaction_types', 'transfer') },
+          ]} searchable={false}
+        />
+        <DropdownSelect label="Категория" value={tx.category_id ?? ''}
+          onChange={(v) => update({ category_id: v ? parseInt(v) : null })}
+          options={(cats ?? []).filter((c) => c.type === tx.type).map((c) => ({
+            value: String(c.id),
+            label: c.name,
+            icon: c.icon,
+            special: c.is_loan,
+          }))}
+        />
+        {tx.type !== 'transfer' && (
+          <DropdownSelect label="Счёт" value={tx.account_id ?? ''}
+            onChange={(v) => update({ account_id: v ? parseInt(v) : null })}
+            options={[
+              { value: '', label: '—' },
+              ...(accs ?? []).map((a) => ({
+                value: String(a.id),
+                label: a.is_hidden ? `🔒 ${a.name}` : a.name,
+              })),
+            ]}
+          />
+        )}
+        {tx.type === 'transfer' && (
+          <div className="grid grid-cols-2 gap-3">
+            <DropdownSelect label="Со счёта" value={tx.account_id ?? ''}
+              onChange={(v) => update({ account_id: v ? parseInt(v) : null })}
+              options={[
+                { value: '', label: '—' },
+                ...(accs ?? []).map((a) => ({ value: String(a.id), label: a.is_hidden ? `🔒 ${a.name}` : a.name })),
+              ]}
+            />
+            <DropdownSelect label="На счёт" value={tx.to_account_id ?? ''}
+              onChange={(v) => update({ to_account_id: v ? parseInt(v) : null })}
+              options={[
+                { value: '', label: '—' },
+                ...(accs ?? []).filter((a) => tx.account_id && a.id !== tx.account_id).map((a) => ({ value: String(a.id), label: a.is_hidden ? `🔒 ${a.name}` : a.name })),
+              ]}
+            />
+          </div>
+        )}
+        <DropdownSelect label="Группа деления" value={tx.shared_group_id ?? ''}
+          onChange={(v) => update({ shared_group_id: v ? parseInt(v) : null })}
+          options={[
+            { value: '', label: '—' },
+            ...(groups ?? []).map((g) => ({ value: String(g.id), label: g.name, icon: g.icon })),
+          ]}
+        />
+        <DropdownSelect label="Участник" value={tx.paid_by_member_id ?? ''}
+          onChange={(v) => update({ paid_by_member_id: v ? parseInt(v) : null })}
+          options={[
+            { value: '', label: '—' },
+            ...(members ?? []).map((m) => ({ value: String(m.id), label: m.name, icon: m.icon })),
+          ]}
+        />
+        <Button type="submit" className="self-end">Сохранить</Button>
+      </form>
+    </Modal>
   )
 }
 

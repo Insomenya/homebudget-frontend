@@ -6,6 +6,7 @@ export interface Category {
   parent_id: number | null
   sort_order: number
   is_archived: boolean
+  is_loan: boolean
   created_at: string
   updated_at: string
 }

@@ -1,9 +1,10 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useMemo, type FormEvent } from 'react'
 import { CalendarClock } from 'lucide-react'
 import { useApiData, useMutation } from '../../hooks/useApi'
 import api from '../../api/client'
 import Modal from '../../components/ui/Modal'
 import Input from '../../components/ui/Input'
+import DropdownSelect, { type DropdownSelectOption } from '../../components/ui/DropdownSelect'
 import Select from '../../components/ui/Select'
 import Button from '../../components/ui/Button'
 import DatePicker from '../../components/ui/DatePicker'
@@ -34,6 +35,13 @@ const LoanModal = ({ open, onClose, onSaved }: Props) => {
   })
   const { data: accs } = useApiData<Account[]>(() => api.accounts.list(), [])
   const { data: cats } = useApiData<Category[]>(() => api.categories.list(), [])
+
+  const loanCatOpts = useMemo<DropdownSelectOption[]>(() =>
+    (cats ?? [])
+      .filter((c) => c.type === 'expense' && !c.is_loan)
+      .map((c) => ({ value: String(c.id), label: c.name, icon: c.icon, special: c.is_loan })),
+    [cats],
+  )
   const { run: saveLoan, loading, error } = useMutation(
     async (d: CreateLoanInput) => await api.loans.create(d),
   )
@@ -94,15 +102,10 @@ const LoanModal = ({ open, onClose, onSaved }: Props) => {
           <Input label="Уже выплачено (тело)" type="number" value={form.already_paid}
             onChange={(e) => setForm({ ...form, already_paid: e.target.value })} />
           <div>
-            <Select label="Категория" value={form.category_id}
-              onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
-              <option value="">—</option>
-              {(cats ?? []).filter((c) => c.type === 'expense').map((c) =>
-                <option key={c.id} value={c.id}
-                  style={c.name.startsWith('Кредит: ') ? { color: '#a855f7', fontWeight: 600 } : undefined}>
-                  {c.icon} {c.name}
-                </option>)}
-            </Select>
+            <DropdownSelect label="Категория" value={form.category_id}
+              onChange={(v) => setForm({ ...form, category_id: v })}
+              options={[{ value: '', label: '—' }, ...loanCatOpts]}
+            />
             <p className="text-[11px] app-text-muted mt-1">Для платежей будет создана дочерняя категория</p>
           </div>
         </div>
