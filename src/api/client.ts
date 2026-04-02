@@ -15,7 +15,9 @@ import type {
 } from '../types'
 import type { QsParams } from '../types/api'
 
-const BASE = '/api'
+const isElectron = typeof window !== 'undefined' && (window as any).electronAPI?.isElectron
+const backendUrl = isElectron ? (window as any).electronAPI?.getBackendUrl() : ''
+const BASE = isElectron ? `${backendUrl}/api` : '/api'
 
 const request = async <T>(method: string, path: string, body?: unknown): Promise<T> => {
   const opts: RequestInit = { method, headers: {} }

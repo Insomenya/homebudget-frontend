@@ -18,13 +18,12 @@ import { SortableTh, toggleSort, sortItems, type SortState } from '../components
 import InlineEdit from '../components/ui/InlineEdit'
 import DatePicker from '../components/ui/DatePicker'
 import DropdownSelect from '../components/ui/DropdownSelect'
-import type { DropdownSelectOption } from '../components/ui/DropdownSelect'
 import type { PlannedTransaction, Category, Member, SharedGroup, Account, CreatePlannedInput, UpdatePlannedInput } from '../types'
 import type { PlanForm, PlanModalProps } from '../types/pages'
 import { fmtDate, fmtRub } from '../lib/format'
 
 const PlanModal = ({ open, plan, onClose, onSaved }: PlanModalProps) => {
-  const { meta, label } = useMeta()
+  const { meta } = useMeta()
   const isNew = !plan
   const emptyForm: PlanForm = {
     name: '', amount: '', type: 'expense', recurrence: 'monthly',

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 
 export type PeriodPreset = 'week' | 'month' | '3months' | 'year' | 'all'
 

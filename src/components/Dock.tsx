@@ -49,8 +49,10 @@ const DockItem = ({ to, icon: Icon, label, matchPaths }: DockLink) => {
   )
 }
 
+const isElectron = typeof (window as any).electronAPI !== 'undefined' && (window as any).electronAPI.isElectron
+
 const Dock = () => (
-  <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50">
+  <div className="fixed left-1/2 -translate-x-1/2 z-50" style={{ top: isElectron ? 44 : 20 }}>
     <div className="flex items-center gap-0.5 px-2 py-1.5 rounded-[22px] border" style={{
       background: 'color-mix(in srgb, var(--surface-glass) 92%, transparent)',
       borderColor: 'var(--border)', backdropFilter: 'blur(18px) saturate(140%)',

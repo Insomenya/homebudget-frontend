@@ -12,7 +12,7 @@ import type { Layout, LayoutItem } from 'react-grid-layout'
 
 const Dashboard = () => {
   const { data, loading, error, reload } = useApiData<DashboardData>(() => api.dashboard())
-  const { widgets, addWidget, removeWidget, reorderWidgets, resizeWidget, moveWidget } = useDashboardStore()
+  const { widgets, addWidget, removeWidget, resizeWidget, moveWidget } = useDashboardStore()
   const [containerWidth, setContainerWidth] = useState(1200)
 
   useEffect(() => {

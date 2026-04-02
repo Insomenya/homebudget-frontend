@@ -8,7 +8,6 @@ import PageHeader from '../components/PageHeader'
 import Card, { CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
-import Select from '../components/ui/Select'
 import Modal from '../components/ui/Modal'
 import Badge from '../components/ui/Badge'
 import Spinner from '../components/ui/Spinner'
@@ -172,7 +171,6 @@ const Transactions = () => {
   const { data: accs } = useApiData<Account[]>(() => api.accounts.listAll(), [])
   const { data: cats } = useApiData<Category[]>(() => api.categories.list(), [])
   const { data: plans } = useApiData<PlannedTransaction[]>(() => api.planned.list(true), [])
-  const { data: groups } = useApiData<SharedGroup[]>(() => api.groups.list(), [])
   const { data: members } = useApiData<Member[]>(() => api.members.list(), [])
   const { data: loans } = useApiData<Loan[]>(() => api.loans.list(true), [])
   const { data: reminders, reload: reloadReminders } = useApiData<PlannedReminder[]>(() => api.planned.reminders(), [])
@@ -386,7 +384,7 @@ const Transactions = () => {
                   <Td className="text-sm">
                     {tx.type !== 'transfer' ? (
                       <DropdownSelect
-                        value={tx.category_id ?? ''}
+                        value={String(tx.category_id ?? '')}
                         onChange={(v) => handleInline(tx, 'category_id', v)}
                         options={txCatOpts}
                         className="w-full"
@@ -482,7 +480,7 @@ const EditTxModal = ({ editingTx, onClose, onSaved }: {
             { value: 'transfer', label: label('transaction_types', 'transfer') },
           ]} searchable={false}
         />
-        <DropdownSelect label="Категория" value={tx.category_id ?? ''}
+        <DropdownSelect label="Категория" value={String(tx.category_id ?? '')}
           onChange={(v) => update({ category_id: v ? parseInt(v) : null })}
           options={(cats ?? []).filter((c) => c.type === tx.type).map((c) => ({
             value: String(c.id),
@@ -492,7 +490,7 @@ const EditTxModal = ({ editingTx, onClose, onSaved }: {
           }))}
         />
         {tx.type !== 'transfer' && (
-          <DropdownSelect label="Счёт" value={tx.account_id ?? ''}
+          <DropdownSelect label="Счёт" value={String(tx.account_id ?? '')}
             onChange={(v) => update({ account_id: v ? parseInt(v) : null })}
             options={[
               { value: '', label: '—' },
@@ -505,14 +503,14 @@ const EditTxModal = ({ editingTx, onClose, onSaved }: {
         )}
         {tx.type === 'transfer' && (
           <div className="grid grid-cols-2 gap-3">
-            <DropdownSelect label="Со счёта" value={tx.account_id ?? ''}
+            <DropdownSelect label="Со счёта" value={String(tx.account_id ?? '')}
               onChange={(v) => update({ account_id: v ? parseInt(v) : null })}
               options={[
                 { value: '', label: '—' },
                 ...(accs ?? []).map((a) => ({ value: String(a.id), label: a.is_hidden ? `🔒 ${a.name}` : a.name })),
               ]}
             />
-            <DropdownSelect label="На счёт" value={tx.to_account_id ?? ''}
+            <DropdownSelect label="На счёт" value={String(tx.to_account_id ?? '')}
               onChange={(v) => update({ to_account_id: v ? parseInt(v) : null })}
               options={[
                 { value: '', label: '—' },
@@ -521,14 +519,14 @@ const EditTxModal = ({ editingTx, onClose, onSaved }: {
             />
           </div>
         )}
-        <DropdownSelect label="Группа деления" value={tx.shared_group_id ?? ''}
+        <DropdownSelect label="Группа деления" value={String(tx.shared_group_id ?? '')}
           onChange={(v) => update({ shared_group_id: v ? parseInt(v) : null })}
           options={[
             { value: '', label: '—' },
             ...(groups ?? []).map((g) => ({ value: String(g.id), label: g.name, icon: g.icon })),
           ]}
         />
-        <DropdownSelect label="Участник" value={tx.paid_by_member_id ?? ''}
+        <DropdownSelect label="Участник" value={String(tx.paid_by_member_id ?? '')}
           onChange={(v) => update({ paid_by_member_id: v ? parseInt(v) : null })}
           options={[
             { value: '', label: '—' },
